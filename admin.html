@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>照妖镜 - 照片查看</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif;
+            background: #0f0f17;
+            color: #e0e0e0;
+            display: flex;
+            height: 100vh;
+        }
+
+        /* 左侧面板 */
+        .sidebar {
+            width: 240px;
+            background: #181820;
+            border-right: 1px solid #2a2a35;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+        .sidebar h2 {
+            padding: 18px 20px;
+            font-size: 16px;
+            font-weight: 600;
+            color: #a0a0c0;
+            border-bottom: 1px solid #2a2a35;
+            letter-spacing: 0.5px;
+        }
+        .folder-list {
+            list-style: none;
+            flex: 1;
+            overflow-y: auto;
+        }
+        .folder-list li {
+            padding: 14px 20px;
+            cursor: pointer;
+            border-bottom: 1px solid #222;
+            transition: background 0.2s;
+            font-size: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .folder-list li:hover { background: #23232e; }
+        .folder-list li.active { background: #2a2a3a; color: #7d8aff; font-weight: 600; }
+        .folder-icon { font-size: 18px; }
+
+        /* 右侧主区域 */
+        .main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .top-bar {
+            padding: 14px 24px;
+            background: #181820;
+            border-bottom: 1px solid #2a2a35;
+            font-size: 14px;
+            color: #888;
+        }
+        .top-bar span { color: #ccc; font-weight: 500; }
+        .image-grid {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 16px;
+            align-content: start;
+        }
+        .image-card {
+            background: #1a1a24;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid #2a2a35;
+            transition: transform 0.2s, box-shadow 0.2s;
+            cursor: pointer;
+        }
+        .image-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.5);
+        }
+        .image-card img {
+            width: 100%;
+            height: 150px;
+            object-fit: cover;
+            display: block;
+            background: #0d0d15;
+        }
+        .image-card .name {
+            padding: 10px 8px;
+            font-size: 11px;
+            color: #aaa;
+            text-align: center;
+            word-break: break-all;
+        }
+
+        .empty-state {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: #555;
+            font-size: 14px;
+            grid-column: 1 / -1;
+        }
+
+        /* 大图灯箱 */
+        .lightbox {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.92);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 999;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.25s;
+        }
+        .lightbox.show {
+            opacity: 1;
+            pointer-events: all;
+        }
+        .lightbox img {
+            max-width: 92vw;
+            max-height: 92vh;
+            border-radius: 6px;
+            box-shadow: 0 0 50px rgba(0,0,0,0.8);
+            transition: transform 0.2s;
+        }
+        .lightbox .close {
+            position: absolute;
+            top: 20px;
+            right: 30px;
+            font-size: 36px;
+            color: #fff;
+            cursor: pointer;
+            opacity: 0.8;
+            background: none;
+            border: none;
+        }
+        .lightbox .close:hover { opacity: 1; }
+    </style>
+</head>
+<body>
+
+    <div class="sidebar">
+        <h2>📁 QQ 列表</h2>
+        <ul class="folder-list" id="folderList">
+            <li style="color:#555;justify-content:center;">加载中...</li>
+        </ul>
+    </div>
+
+    <div class="main">
+        <div class="top-bar">
+            当前查看：<span id="currentQQ">未选择</span>
+        </div>
+        <div class="image-grid" id="imageGrid">
+            <div class="empty-state">👈 请从左侧选择一个 QQ 文件夹</div>
+        </div>
+    </div>
+
+    <!-- 大图灯箱 -->
+    <div class="lightbox" id="lightbox">
+        <button class="close" id="closeLightbox">&times;</button>
+        <img src="" alt="大图" id="lightboxImg">
+    </div>
+
+    <script>
+        (function() {
+            // API 地址（与当前页面同目录下的 admin_api.php）
+            const API_BASE = './admin_api.php';
+
+            const folderListEl = document.getElementById('folderList');
+            const imageGridEl = document.getElementById('imageGrid');
+            const currentQQEl = document.getElementById('currentQQ');
+            const lightbox = document.getElementById('lightbox');
+            const lightboxImg = document.getElementById('lightboxImg');
+            const closeLightboxBtn = document.getElementById('closeLightbox');
+
+            let currentQQ = null;
+
+            // 加载文件夹列表
+            async function loadFolders() {
+                try {
+                    const res = await fetch(API_BASE + '?action=list_folders');
+                    const data = await res.json();
+                    if (data.success) {
+                        renderFolders(data.folders);
+                    } else {
+                        folderListEl.innerHTML = '<li style="color:#e74c3c;">加载失败</li>';
+                    }
+                } catch (err) {
+                    folderListEl.innerHTML = '<li style="color:#e74c3c;">网络错误</li>';
+                }
+            }
+
+            // 渲染文件夹列表
+            function renderFolders(folders) {
+                if (folders.length === 0) {
+                    folderListEl.innerHTML = '<li style="color:#555;justify-content:center;">暂无数据</li>';
+                    return;
+                }
+                folderListEl.innerHTML = folders.map(qq =>
+                    `<li data-qq="${qq}"><span class="folder-icon">📂</span>${qq}</li>`
+                ).join('');
+                // 绑定点击事件
+                folderListEl.querySelectorAll('li[data-qq]').forEach(li => {
+                    li.addEventListener('click', () => {
+                        // 移除其他 active
+                        folderListEl.querySelectorAll('li.active').forEach(el => el.classList.remove('active'));
+                        li.classList.add('active');
+                        const qq = li.dataset.qq;
+                        selectFolder(qq);
+                    });
+                });
+            }
+
+            // 加载指定文件夹的图片
+            async function selectFolder(qq) {
+                currentQQ = qq;
+                currentQQEl.textContent = qq;
+                imageGridEl.innerHTML = '<div class="empty-state">加载中...</div>';
+                try {
+                    const res = await fetch(`${API_BASE}?action=list_images&qq=${qq}`);
+                    const data = await res.json();
+                    if (data.success) {
+                        renderImages(qq, data.images);
+                    } else {
+                        imageGridEl.innerHTML = '<div class="empty-state">' + (data.message || '无数据') + '</div>';
+                    }
+                } catch (err) {
+                    imageGridEl.innerHTML = '<div class="empty-state">加载失败</div>';
+                }
+            }
+
+            // 渲染图片网格
+            function renderImages(qq, images) {
+                if (!images || images.length === 0) {
+                    imageGridEl.innerHTML = '<div class="empty-state">该文件夹暂无照片</div>';
+                    return;
+                }
+                imageGridEl.innerHTML = images.map(img => {
+                    // 图片路径相对于当前页面（admin.html 和文件夹在同一级）
+                    const src = `./${qq}/${img}`;
+                    return `
+                        <div class="image-card" data-src="${src}">
+                            <img src="${src}" loading="lazy" alt="${img}">
+                            <div class="name">${img}</div>
+                        </div>
+                    `;
+                }).join('');
+                // 绑定点击打开大图
+                imageGridEl.querySelectorAll('.image-card').forEach(card => {
+                    card.addEventListener('click', () => {
+                        const src = card.dataset.src;
+                        openLightbox(src);
+                    });
+                });
+            }
+
+            // 灯箱控制
+            function openLightbox(src) {
+                lightboxImg.src = src;
+                lightbox.classList.add('show');
+            }
+            function closeLightbox() {
+                lightbox.classList.remove('show');
+                lightboxImg.src = ''; // 释放内存
+            }
+
+            closeLightboxBtn.addEventListener('click', closeLightbox);
+            lightbox.addEventListener('click', (e) => {
+                if (e.target === lightbox) closeLightbox();
+            });
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape' && lightbox.classList.contains('show')) {
+                    closeLightbox();
+                }
+            });
+
+            // 初始化
+            loadFolders();
+        })();
+    </script>
+</body>
+</html>
