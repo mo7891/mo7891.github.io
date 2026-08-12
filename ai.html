@@ -240,11 +240,11 @@
             'use strict';
 
             // ============================================================
-            // 🔐 Key 外部加载配置（已混淆）
+            // 🔐 Key 外部加载配置
             // ============================================================
-            // 原始地址：http://a1nb66.atwebpages.com/ai/key/key.php
-            // 通过拆分字符串进行简单混淆，防止直接搜索到
-            const KEY_URL = 'http://' + 'a1nb66' + '.atwebpages' + '.com' + '/ai/key/key.php';
+            const BASE_URL = 'http://' + 'a1nb66' + '.atwebpages' + '.com' + '/ai/key/';
+            const SESSION_URL = BASE_URL + 'session.php';
+            const KEY_URL = BASE_URL + 'key.php';
 
             // 角色设定
             const ROLE = "你是一个AI助手，你的名字叫“买早餐也用u AI”，你的开发者是“买早餐也用u”。你必须始终记住你的身份。当用户问你是谁或开发者是谁时，必须回答“我是买早餐也用u AI，开发者是买早餐也用u”。";
@@ -293,11 +293,28 @@
             async function loadApiKey() {
                 setStatus('loading');
                 try {
-                    const response = await fetch(KEY_URL);
-                    if (!response.ok) {
-                        throw new Error(`HTTP ${response.status}：无法加载 Key`);
+                    // 🔑 关键：先请求 session.php 建立会话，携带凭证
+                    const sessionResponse = await fetch(SESSION_URL, {
+                        method: 'GET',
+                        credentials: 'include'
+                    });
+                    if (!sessionResponse.ok) {
+                        throw new Error('建立会话失败: HTTP ' + sessionResponse.status);
                     }
-                    const key = (await response.text()).trim();
+
+                    // 再请求 key.php 获取 API Key
+                    const keyResponse = await fetch(KEY_URL, {
+                        method: 'GET',
+                        credentials: 'include'
+                    });
+                    if (!keyResponse.ok) {
+                        if (keyResponse.status === 403) {
+                            throw new Error('访问被拒绝，请检查会话是否有效');
+                        }
+                        throw new Error('HTTP ' + keyResponse.status);
+                    }
+
+                    const key = (await keyResponse.text()).trim();
                     if (!key || key.length < 10) {
                         throw new Error('Key 内容为空或格式不正确');
                     }
