@@ -240,16 +240,12 @@
             'use strict';
 
             // ============================================================
-            // 🔐 Key 外部加载配置
+            // 🔐 配置区域（请根据需要修改）
             // ============================================================
-            const BASE_URL = 'http://' + 'a1nb66' + '.atwebpages' + '.com' + '/ai/key/';
-            const SESSION_URL = BASE_URL + 'session.php';
-            const KEY_URL = BASE_URL + 'key.php';
+            const KEY_URL = 'http://' + 'a1nb66' + '.atwebpages' + '.com' + '/ai/key/key.php';
+            const TOKEN = 'abc123xyz';   // ← 设置一个自定义密码，和 key.php 中保持一致
 
-            // 角色设定
             const ROLE = "你是一个AI助手，你的名字叫“买早餐也用u AI”，你的开发者是“买早餐也用u”。你必须始终记住你的身份。当用户问你是谁或开发者是谁时，必须回答“我是买早餐也用u AI，开发者是买早餐也用u”。";
-
-            // 模型配置
             const MODEL = 'glm-4-flash';
             const TEMPERATURE = 0.7;
             const MAX_TOKENS = 2048;
@@ -293,28 +289,12 @@
             async function loadApiKey() {
                 setStatus('loading');
                 try {
-                    // 🔑 关键：先请求 session.php 建立会话，携带凭证
-                    const sessionResponse = await fetch(SESSION_URL, {
-                        method: 'GET',
-                        credentials: 'include'
-                    });
-                    if (!sessionResponse.ok) {
-                        throw new Error('建立会话失败: HTTP ' + sessionResponse.status);
+                    // 请求 key.php 时带上 token
+                    const response = await fetch(KEY_URL + '?token=' + TOKEN);
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}`);
                     }
-
-                    // 再请求 key.php 获取 API Key
-                    const keyResponse = await fetch(KEY_URL, {
-                        method: 'GET',
-                        credentials: 'include'
-                    });
-                    if (!keyResponse.ok) {
-                        if (keyResponse.status === 403) {
-                            throw new Error('访问被拒绝，请检查会话是否有效');
-                        }
-                        throw new Error('HTTP ' + keyResponse.status);
-                    }
-
-                    const key = (await keyResponse.text()).trim();
+                    const key = (await response.text()).trim();
                     if (!key || key.length < 10) {
                         throw new Error('Key 内容为空或格式不正确');
                     }
