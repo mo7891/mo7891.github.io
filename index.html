@@ -11,36 +11,6 @@
             background: #f5f5f7;
             min-height: 100vh;
         }
-        .api-config {
-            background: #fff9e6;
-            border-bottom: 1px solid #ffcc00;
-            padding: 10px 20px;
-            text-align: center;
-            font-size: 13px;
-            color: #996600;
-        }
-        .api-config input {
-            border: 1px solid #e5e5ea;
-            border-radius: 8px;
-            padding: 6px 12px;
-            font-size: 13px;
-            width: 350px;
-            max-width: 70%;
-            background: white;
-        }
-        .api-config button {
-            padding: 6px 16px;
-            border-radius: 8px;
-            border: 1px solid #007aff;
-            background: #007aff;
-            color: white;
-            cursor: pointer;
-            font-size: 13px;
-            margin-left: 8px;
-        }
-        .api-config .status { margin-left: 10px; font-size: 12px; }
-        .status.ok { color: #34c759; }
-        .status.err { color: #ff3b30; }
         .container-desktop {
             display: none;
             max-width: 1200px;
@@ -186,12 +156,6 @@
             background:#fff9e6; border:1px solid #ffcc00; color:#996600;
             padding:12px; border-radius:16px; font-size:12px; margin-top:16px;
         }
-        .code-chip {
-            display:inline-block; background:#f5f5f7; padding:6px 14px;
-            border-radius:30px; font-size:13px; font-family:monospace;
-            cursor:pointer; margin:2px;
-        }
-        .code-chip:active { background:#007aff; color:white; }
         .loading-spinner {
             display:inline-block; width:20px; height:20px;
             border:2px solid #e5e5ea; border-top-color:#007aff;
@@ -211,9 +175,6 @@
             text-align:center; padding:40px; color:#86868b;
             background:#f5f5f7; border-radius:16px;
         }
-        .debug-link {
-            margin-top:10px; font-size:12px; color:#007aff; cursor:pointer; text-decoration:underline;
-        }
         @media (min-width:768px) {
             .container-mobile { display:none; }
             .container-desktop { display:flex; }
@@ -225,14 +186,6 @@
     </style>
 </head>
 <body>
-    <!-- API配置 -->
-    <div class="api-config">
-        🔗 API地址：
-        <input type="text" id="apiUrl" value="http://a1nb66.atwebpages.com/zyj/api.php">
-        <button onclick="saveApiUrl()">保存</button>
-        <span id="apiStatus" class="status ok">✅ 已连接</span>
-        <a href="http://a1nb66.atwebpages.com/zyj/api.php?action=debug" target="_blank" style="margin-left:15px;color:#007aff;font-size:12px;">🔍 调试</a>
-    </div>
 
     <!-- 桌面版 -->
     <div class="container-desktop">
@@ -269,7 +222,6 @@
                 <div class="form-group">
                     <label>输入编号</label>
                     <input type="text" id="searchCodeDesktop" placeholder="输入编号">
-                    <div class="input-hint" id="codeHintDesktop">已有编号：加载中...</div>
                 </div>
                 <button class="btn btn-secondary" id="viewBtnDesktop">🔍 查看照片</button>
                 <div id="photoResultDesktop" style="margin-top: 20px;"></div>
@@ -312,7 +264,6 @@
                 <div class="form-group">
                     <label>输入编号</label>
                     <input type="text" id="searchCodeMobile" placeholder="输入编号">
-                    <div class="input-hint" id="codeHintMobile">已有编号：加载中...</div>
                 </div>
                 <button class="btn btn-secondary" id="viewBtnMobile">🔍 查看照片</button>
                 <div id="photoResultMobile" style="margin-top: 20px;"></div>
@@ -325,43 +276,11 @@
     </div>
 
     <script>
-        let API_URL = localStorage.getItem('zyj_api_url') || 'http://a1nb66.atwebpages.com/zyj/api.php';
+        // API地址（固定）
+        const API_URL = 'http://a1nb66.atwebpages.com/zyj/api.php';
         const BASE_URL = window.location.href.substring(0, window.location.href.lastIndexOf('/') + 1);
         const CAMERA_PAGE = BASE_URL + 'camera.html';
 
-        function setApiUrl(url) {
-            API_URL = url;
-            localStorage.setItem('zyj_api_url', url);
-            document.getElementById('apiUrl').value = url;
-            checkApiStatus();
-        }
-        function saveApiUrl() {
-            const url = document.getElementById('apiUrl').value.trim();
-            if (url) { setApiUrl(url); showToast('✅ API地址已保存'); }
-        }
-        function checkApiStatus() {
-            const statusEl = document.getElementById('apiStatus');
-            statusEl.textContent = '⏳ 检测中...';
-            statusEl.className = 'status';
-            fetch(API_URL + '?action=get_codes')
-                .then(res => res.json())
-                .then(data => {
-                    statusEl.textContent = '✅ 已连接';
-                    statusEl.className = 'status ok';
-                    if (data.codes) updateCodeHints(data.codes);
-                })
-                .catch(() => {
-                    statusEl.textContent = '❌ 连接失败';
-                    statusEl.className = 'status err';
-                });
-        }
-        function updateCodeHints(codes) {
-            const hint = codes.length > 0 ? codes.slice(0,8).join(', ') : '暂无';
-            ['codeHintDesktop', 'codeHintMobile'].forEach(id => {
-                const el = document.getElementById(id);
-                if (el) el.textContent = '已有编号：' + hint;
-            });
-        }
         function showToast(msg) {
             let toast = document.querySelector('.copy-toast');
             if (toast) toast.remove();
@@ -371,9 +290,11 @@
             document.body.appendChild(toast);
             setTimeout(() => toast.remove(), 2000);
         }
+
         function escapeHtml(t) { if (!t) return ''; const d=document.createElement('div'); d.textContent=t; return d.innerHTML; }
         function formatTime(t) { if (!t) return ''; return t.substring(5,16); }
 
+        // 生成链接
         function generateLink(targetUrlId, codeId, linkBoxId, generatedId) {
             let targetUrl = document.getElementById(targetUrlId).value.trim();
             let code = document.getElementById(codeId).value.trim().toUpperCase();
@@ -384,6 +305,8 @@
             document.getElementById(linkBoxId).textContent = cameraUrl;
             document.getElementById(generatedId).classList.add('show');
         }
+
+        // 复制链接
         function copyLink(linkBoxId) {
             const text = document.getElementById(linkBoxId).textContent;
             if (!text) { showToast('没有可复制的链接'); return; }
@@ -400,6 +323,7 @@
             }
         }
 
+        // 渲染照片
         let currentPhotosData = [];
         let selectedPhotoIndex = 0;
         function renderPhotoGrid(code, photos, containerId) {
@@ -450,6 +374,7 @@
             });
         }
 
+        // 查看照片
         function viewPhoto(searchCodeId, resultContainerId) {
             const code = document.getElementById(searchCodeId).value.trim().toUpperCase();
             if (!code) { showToast('请输入编号'); return; }
@@ -463,7 +388,7 @@
                         selectedPhotoIndex = 0;
                         renderPhotoGrid(code, data.photos, resultContainerId);
                     } else {
-                        container.innerHTML = `<div class="error-msg">❌ 未找到编号 <strong>${escapeHtml(code)}</strong> 的照片<br><small>提示：请确认拍照已完成，或访问 <a href="${API_URL}?action=debug" target="_blank">调试页面</a> 查看数据</small></div>`;
+                        container.innerHTML = `<div class="error-msg">❌ 未找到编号 <strong>${escapeHtml(code)}</strong> 的照片</div>`;
                     }
                 })
                 .catch(err => {
@@ -471,19 +396,9 @@
                 });
         }
 
-        function loadCodeList() {
-            fetch(`${API_URL}?action=get_codes`)
-                .then(res => res.json())
-                .then(data => { if (data.codes) updateCodeHints(data.codes); })
-                .catch(console.error);
-        }
-
+        // 事件绑定
         document.addEventListener('DOMContentLoaded', function() {
-            const savedUrl = localStorage.getItem('zyj_api_url');
-            if (savedUrl) { document.getElementById('apiUrl').value = savedUrl; API_URL = savedUrl; }
-            checkApiStatus();
-            loadCodeList();
-
+            // 桌面
             document.getElementById('generateBtnDesktop')?.addEventListener('click', () => {
                 generateLink('targetUrlDesktop', 'photoCodeDesktop', 'linkBoxDesktop', 'generatedLinkDesktop');
             });
@@ -497,6 +412,7 @@
                 if (e.key === 'Enter') viewPhoto('searchCodeDesktop', 'photoResultDesktop');
             });
 
+            // 手机
             document.getElementById('generateBtnMobile')?.addEventListener('click', () => {
                 generateLink('targetUrlMobile', 'photoCodeMobile', 'linkBoxMobile', 'generatedLinkMobile');
             });
@@ -510,6 +426,7 @@
                 if (e.key === 'Enter') viewPhoto('searchCodeMobile', 'photoResultMobile');
             });
 
+            // 手机导航
             document.querySelectorAll('.mobile-nav .nav-item').forEach(item => {
                 item.addEventListener('click', function() {
                     const page = this.dataset.page;
@@ -518,9 +435,6 @@
                     document.getElementById('pageHome')?.classList.toggle('active-page', page === 'home');
                     document.getElementById('pageView')?.classList.toggle('active-page', page === 'view');
                 });
-            });
-            document.getElementById('apiUrl')?.addEventListener('keypress', function(e) {
-                if (e.key === 'Enter') saveApiUrl();
             });
         });
     </script>
